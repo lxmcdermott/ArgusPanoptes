@@ -90,7 +90,28 @@ python scripts/generate_dataset.py --num-samples 500 --output-dir data/synthetic
 Outputs:
 
 - Validation plots → `experiments/plots/`
-- Dataset → `data/synthetic_v1/` (partitioned Parquet + `manifest.parquet`)
+- Dataset → `data/synthetic_v1/`:
+  - `records/` — Parquet partitioned by `alloy` / `wear_bin`, with raw
+    `vibration_waveform` and `thermal_waveform` list columns.
+  - `manifest.parquet` — tabular metadata + labels only (fast to query).
+
+Reading it back:
+
+```python
+import pandas as pd, pyarrow as pa, pyarrow.dataset as ds
+
+# Fast metadata/label queries + stats:
+meta = pd.read_parquet("data/synthetic_v1/manifest.parquet")
+
+# Waveforms with predicate pushdown (alloy values are numeric-looking,
+# so pass an explicit string partition schema):
+part = ds.partitioning(
+    schema=pa.schema([("alloy", pa.string()), ("wear_bin", pa.string())]),
+    flavor="hive",
+)
+d = ds.dataset("data/synthetic_v1/records", partitioning=part, format="parquet")
+table = d.to_table(filter=ds.field("wear_bin") == "0.8-1.0")
+```
 
 ---
 
