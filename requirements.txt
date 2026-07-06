@@ -1,0 +1,30 @@
+# Argus Panoptes v1 - core runtime dependencies
+# Python 3.11+ recommended (tested on 3.13)
+
+# --- Numerics & signal processing ---
+numpy>=1.26
+scipy>=1.11
+
+# --- Data / storage ---
+pandas>=2.1
+pyarrow>=14.0
+
+# --- Config / validation ---
+pydantic>=2.5
+PyYAML>=6.0
+
+# --- Visualization (validation & experiments) ---
+matplotlib>=3.8
+
+# --- Progress / CLI utilities ---
+tqdm>=4.66
+
+# --- Testing ---
+pytest>=7.4
+
+# ---------------------------------------------------------------------------
+# The following are NOT required for the sensors/ (synthetic data) module and
+# are intentionally deferred to later days of the execution plan:
+#   ML:  scikit-learn, xgboost, lightgbm, torch, onnx, onnxruntime
+#   App: fastapi, uvicorn, streamlit, plotly
+# ---------------------------------------------------------------------------

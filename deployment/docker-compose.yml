@@ -1,0 +1,31 @@
+# ---------------------------------------------------------------------------
+# Argus Panoptes - placeholder compose file (Day 6 deliverable).
+# SCAFFOLD ONLY: services for the FastAPI API and Streamlit dashboard are
+# stubbed and will be wired up once app/ is implemented.
+# ---------------------------------------------------------------------------
+services:
+  # api:
+  #   build:
+  #     context: ..
+  #     dockerfile: deployment/Dockerfile
+  #   command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+  #   ports:
+  #     - "8000:8000"
+
+  # dashboard:
+  #   build:
+  #     context: ..
+  #     dockerfile: deployment/Dockerfile
+  #   command: streamlit run app/dashboard.py --server.address 0.0.0.0
+  #   ports:
+  #     - "8501:8501"
+  #   depends_on:
+  #     - api
+
+  datagen:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    command: python scripts/generate_dataset.py --num-samples 50 --output-dir /app/data/synthetic_v1
+    volumes:
+      - ../data:/app/data

@@ -1,0 +1,95 @@
+# Argus Panoptes Technical Plan
+
+## Project Overview
+Argus Panoptes is a complete, runnable one-week prototype of a multi-modal industrial perception stack for aluminum sawing and CNC machining cells at Nox Metals. It demonstrates full ownership of the perception layer (vision, vibration, thermal signals) that feeds accurate data into job costing, cycle time prediction, and nesting optimization (making WAYNE accurate). Built with heavy emphasis on signal processing for blade wear and cut condition monitoring using physics-informed synthetic data.
+
+**Purpose**: Provide a production-ready v1 artifact that maps 1:1 to the Perception Engineer job posting, showcasing end-to-end pipeline, experiments/ablations, edge deployment, team integrations, and rapid shipping capability.
+
+## Goals & Alignment with Job Requirements
+- Own full perception stack across factory (sensors on saws/CNC).
+- Vibration for blade wear, thermal for cut conditions, vision hooks for inspection/defects.
+- Full pipeline: sensor simulation → DSP → data collection/labeling → ML training → edge/cloud inference → monitoring/retraining.
+- Data pipelines capturing every waveform/reading into Parquet for ML/ops intelligence.
+- Feed structured predictions into cost models/nesting via APIs.
+- Partner with ML/automation/controls/software teams via clean interfaces.
+- Run experiments, ablations, and simulated "floor" tests.
+- Builder mindset: ship working v1 fast with quality, safety mindset, and business focus (customer dock parts).
+
+## High-Level Architecture
+- Physical layer (simulated): Saw/CNC + sensors (accelerometer, IR thermal, optional camera).
+- Edge layer: DSP engine, ML inference (ONNX), data logger.
+- Integration layer: FastAPI service, mock PLC/OPC-UA, payload to WAYNE.
+- User/ops layer: Streamlit dashboard with live viz, predictions, alerts, optimization lab.
+- Cloud path: Optional fleet aggregation for retraining.
+
+## Key Technical Components
+### 1. Synthetic Data Generator
+- `SawVibrationSimulator`: 10-20kHz time-series with tooth-pass frequencies, harmonics, wear-modulated amplitude/broadband noise (physics-based on machining dynamics: force ~ specific energy × chip area).
+- `ThermalSimulator`: Lumped model for cut-zone temperature rise with wear (friction power).
+- Labels: Auto-generated RUL, wear level (0-1), cycle time factor, quality score, anomalies.
+- Configurable params: RPM, feed, depth, alloy, wear.
+
+### 2. DSP & Feature Extraction
+- Preprocessing: Detrend, bandpass (scipy.signal), normalization.
+- Time-domain: RMS, crest factor, kurtosis, skewness, peak-to-peak, etc.
+- Frequency-domain: Welch PSD, band energies, spectral centroid/rolloff/flatness, dominant peaks.
+- Time-frequency: STFT spectrograms.
+- Modular `SignalProcessor` class with YAML config.
+
+### 3. ML Pipeline & Experiments
+- Dataset: Thousands of Parquet samples (train/val/test splits).
+- Models:
+  - Baseline: XGBoost/LightGBM on features (interpretable importances).
+  - DL: 1D CNN (raw vibration), spectrogram CNN, sensor fusion (vib + thermal).
+- Tasks: Regression (wear/RUL), classification (health states), anomaly detection.
+- Ablations: Feature groups, single vs. fusion sensors, noise robustness, model types.
+- Training: PyTorch, evaluation metrics (MAE, F1, latency), ONNX export.
+
+### 4. Data Pipeline & Logging
+- Streaming ingestion with ring buffer.
+- Parquet partitioned logs (features, predictions, metadata, optional raw refs).
+- Efficient, versionable, queryable for historical analysis.
+
+### 5. Inference & Integration
+- `StreamingPerceptor` class for real-time chunk processing.
+- FastAPI endpoints: /infer, /batch, structured JSON payloads for WAYNE (cycle factor, quality, recommendations).
+- Mock integrations: PLC tags, ML feature store.
+
+### 6. Dashboard (Streamlit)
+- Live simulation controls (sliders for params/wear).
+- Real-time plots: waveform, FFT, STFT heatmap, thermal trends.
+- KPIs/gauges: wear %, RUL, cycle factor, anomaly score, confidence.
+- Alerts & actions, historical explorer, optimization lab (cost/nesting impact).
+- Model toggle (PyTorch vs ONNX).
+
+### 7. Deployment & Edge
+- Dockerfile + docker-compose for API + dashboard.
+- ONNX Runtime benchmarks (CPU, notes for Jetson/TensorRT/OpenVINO).
+- Monitoring hooks, retraining stubs.
+
+## Tech Stack
+- Core: Python 3.11, NumPy, SciPy (signal), Pandas, PyArrow (Parquet).
+- ML: scikit-learn/XGBoost, PyTorch, ONNX Runtime.
+- App: FastAPI, Streamlit, Plotly.
+- Utils: Pydantic, YAML, logging.
+- Dev: pytest, Docker, Git.
+
+## One-Week Execution Plan
+**Day 1**: Repo/env setup, vibration/thermal simulators, core DSP + validation.
+**Day 2**: Full dataset gen, XGBoost baseline + first ablations.
+**Day 3**: DL models, spectrograms, ONNX export.
+**Day 4**: Streaming inference, Parquet pipeline, FastAPI service.
+**Day 5**: Streamlit dashboard + WAYNE integration mock.
+**Day 6**: Full experiments, robustness tests, Docker/edge prep. (Hardware pilot optional.)
+**Day 7**: Polish, README/docs, demo video recording, final verification.
+
+## Deliverables & Usage
+- GitHub repo: Clean structure (/sensors, /dsp, /models, /app, /experiments, /deployment).
+- README: Architecture (Mermaid/diagram), quickstart, results/metrics, job mapping.
+- Demo video: Live walkthrough + technical deep-dive.
+- Run: `streamlit run app.py` or Docker for full stack.
+- Future: Swap simulator for real DAQ (Pi + MPU6050 + MLX90640), add vision depth.
+
+**Repo Name Suggestion**: `argus-panoptes-perception` or `nox-perception-prototype`
+
+This plan enables rapid iteration with AI coding workflows while delivering a high-quality, portfolio-ready artifact that proves immediate impact for the Nox Metals role.

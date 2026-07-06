@@ -1,0 +1,130 @@
+# =============================================================================
+# Argus Panoptes v1 - Sensor & Machining Specification
+# -----------------------------------------------------------------------------
+# Authoritative, human-editable configuration for the synthetic-data generator.
+# Values are drawn from real industrial condition-monitoring practice for
+# aluminum sawing / CNC cells (IEPE accelerometer on the blade guide / spindle
+# housing, IR pyrometer on the tool-chip cut zone). All values are overridable
+# at runtime via function args / env vars (see sensors.config.load_config).
+#
+# Units are named explicitly in every key to avoid ambiguity.
+# =============================================================================
+
+simulator_version: "0.1.0"
+random_seed: 42          # global default seed for reproducibility
+
+# -----------------------------------------------------------------------------
+# Vibration sensor: IEPE (ICP) piezoelectric accelerometer
+# Mounted via stud or magnet on the blade guide or spindle housing so that the
+# sensitive axis captures the dominant cutting-direction structural response.
+# -----------------------------------------------------------------------------
+vibration:
+  type: "IEPE_accelerometer"
+  mounting: "stud_or_magnet_on_blade_guide_or_spindle_housing"
+  sensitivity_mV_per_g: 100.0      # 100 mV/g general-purpose ICP (10 mV/g for high-g)
+  bandwidth_hz_up_to: 20000        # usable flat band (+/- 3 dB)
+  resonant_freq_hz: 35000          # mounted resonance (well above band of interest)
+  noise_floor_g_rms: 0.001         # broadband electrical/sensor noise floor
+  fs_hz: 40960                     # sample rate (power-of-two-friendly; >2x bandwidth)
+  axes: 1                          # single-axis to start (cutting direction)
+  clip_g: 50.0                     # accelerometer full-scale range (+/- g), for clip checks
+
+  # --- Force -> acceleration coupling and stochastic content ---
+  accel_g_per_kN: 8.0              # structural gain: peak g per kN of per-tooth cutting force
+  broadband_base_g: 0.05          # colored-noise RMS (g) at wear=0 (chip formation)
+  broadband_wear_gain: 3.0        # broadband RMS multiplier gain with wear
+  broadband_exponent: 1.0         # 1/f^alpha coloring exponent (1.0 = pink noise)
+
+  # Structural resonance boost applied to the broadband component to emulate
+  # light machine dynamics (a lightly-damped IIR band-pass around a mode).
+  structural_modes:
+    - center_hz: 1800.0
+      q: 6.0
+      gain: 2.0
+    - center_hz: 4200.0
+      q: 8.0
+      gain: 1.4
+
+  # Per-tooth engagement pulse shape.
+  pulse:
+    shape: "exp_decay_sine"        # "half_sine" | "exp_decay_sine"
+    ring_freq_hz: 2000.0           # damped ring frequency of the impact
+    damping: 180.0                 # exponential decay rate (1/s); higher = shorter pulse
+    width_frac: 0.6                # fraction of tooth period the pulse is allowed to occupy
+  harmonics: [1.0, 0.5, 0.3, 0.15] # relative amplitude of TPF, 2x, 3x, 4x
+
+# -----------------------------------------------------------------------------
+# Thermal sensor: fast IR pyrometer aimed at the tool-chip interface / rake face
+# -----------------------------------------------------------------------------
+thermal:
+  type: "IR_pyrometer_cut_zone"
+  focus: "tool_chip_interface_or_rake_face"
+  bandwidth_hz: 100                # optical/electronic response bandwidth
+  noise_std_c: 0.5                 # sensor noise (deg C, 1-sigma)
+  fs_hz: 200                       # sample rate (>2x bandwidth)
+  emissivity: 0.4                  # bright aluminum / chip emissivity (documentation only)
+
+  # Lumped first-order thermal model of the cut zone.
+  thermal_model:
+    ambient_c: 25.0                # shop-floor ambient temperature
+    heat_partition: 0.10           # fraction of cutting power heating the IR-measured cut zone
+                                   # (Al is highly conductive; most heat leaves with chip/coolant)
+    loss_coefficient_w_per_c: 2.2  # effective conduction+convection+radiation loss (W/degC)
+    thermal_mass_j_per_c: 9.0      # lumped heat capacity of the cut zone (J/degC)
+    friction_power_gain_w: 260.0   # extra friction power at full wear (W), scales with wear
+    max_temp_c: 600.0             # physical clamp (well below Al melt ~660 degC)
+
+# -----------------------------------------------------------------------------
+# Default machining parameters and their sampling ranges for dataset generation.
+# The saw is modeled as a circular/cold saw on aluminum by default; a band-saw
+# equivalent is supported by setting saw_type: band and providing tpi.
+# -----------------------------------------------------------------------------
+machining:
+  saw_type: "circular"             # "circular" | "band"
+
+  # --- Alloys: specific cutting energy (u) in J/mm^3 for aluminum. ---
+  # u rises with wear (dull edge -> rubbing / built-up-edge on gummy Al).
+  alloys:
+    "6061":
+      base_specific_energy_j_per_mm3: 0.85
+      wear_energy_gain: 0.9        # u = base * (1 + wear_energy_gain * wear)
+    "7075":
+      base_specific_energy_j_per_mm3: 1.05
+      wear_energy_gain: 1.0
+  default_alloy: "6061"
+
+  # --- Geometry / kinematics defaults ---
+  blade_speed_sfpm: 800.0          # surface feet per minute (typical Al: 500-1200)
+  blade_diameter_mm: 350.0         # circular blade diameter (sets RPM from SFPM)
+  num_teeth: 80                    # circular blade tooth count (40-120)
+  tpi: 4                           # band-saw teeth-per-inch (used when saw_type == band)
+  band_speed_sfpm: 800.0           # band-saw blade linear speed (used when saw_type == band)
+  feed_per_tooth_mm: 0.12          # chip load per tooth (0.05-0.4)
+  depth_mm: 25.0                   # depth/height of cut engagement (5-50)
+  kerf_width_mm: 3.0               # cut width (2-5)
+
+  # --- Force model coefficients ---
+  friction_wear_gain: 0.6          # additional force fraction from friction at full wear
+  force_wear_gain: 0.5             # k_wear: direct force increase with wear
+
+  # --- Parameter sampling ranges for scripts/generate_dataset.py ---
+  sampling:
+    alloys: ["6061", "7075"]
+    blade_speed_sfpm: [500.0, 1200.0]
+    feed_per_tooth_mm: [0.05, 0.40]
+    depth_mm: [5.0, 50.0]
+    kerf_width_mm: [2.0, 5.0]
+    num_teeth: [40, 120]
+    wear: [0.0, 1.0]
+    duration_s: [2.0, 5.0]
+
+# -----------------------------------------------------------------------------
+# Label-generation coefficients (see sensors.utils / sensors.labels).
+# -----------------------------------------------------------------------------
+labels:
+  rul_max_cycles: 1000             # nominal blade life in cuts (for RUL proxy)
+  cycle_time_wear_gain: 0.30       # cycle_time_factor = 1 + gain*wear + force term
+  quality_wear_gain: 0.50          # quality drops with wear
+  quality_kurtosis_gain: 0.10      # quality penalty from spikiness (impact/chatter)
+  anomaly_wear_threshold: 0.85     # wear above this flags high-wear anomaly
+  anomaly_temp_threshold_c: 350.0  # cut-zone temp above this flags thermal anomaly
