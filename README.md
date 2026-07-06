@@ -3,7 +3,8 @@
 > A runnable, multi-modal **industrial perception prototype** for aluminum
 > sawing and CNC machining cells. It owns the perception layer — **vibration,
 > thermal (and vision hooks)** — that feeds accurate data into job costing,
-> cycle-time prediction, and nesting optimization (making **WAYNE** accurate).
+> cycle-time prediction, and nesting optimization (making the downstream
+> **cost & nesting optimizer** accurate).
 >
 > Built with heavy emphasis on **signal processing for blade-wear and
 > cut-condition monitoring** using **physics-informed synthetic data**.
@@ -34,29 +35,29 @@ scaffolded so the one-week plan can proceed immediately.
 
 ```mermaid
 flowchart LR
-    subgraph Physical["Physical layer (simulated)"]
+    subgraph physical [Physical layer - simulated]
         SAW["Saw / CNC cell"]
-        ACC["IEPE accelerometer<br/>(blade guide / spindle)"]
-        IR["IR pyrometer<br/>(cut zone)"]
+        ACC["IEPE accelerometer<br/>blade guide / spindle"]
+        IR["IR pyrometer<br/>cut zone"]
         SAW --> ACC
         SAW --> IR
     end
 
-    subgraph Edge["Edge layer"]
+    subgraph edge [Edge layer]
         SIM["sensors/<br/>SawVibrationSimulator<br/>ThermalSimulator"]
-        DSP["dsp/<br/>SignalProcessor<br/>(RMS, PSD, STFT…)"]
-        ML["models/<br/>XGBoost · 1D-CNN · fusion<br/>(ONNX)"]
+        DSP["dsp/<br/>SignalProcessor<br/>RMS, PSD, STFT"]
+        ML["models/<br/>XGBoost, 1D-CNN, fusion<br/>ONNX"]
         LOG[("data/<br/>Parquet logs")]
     end
 
-    subgraph Integration["Integration layer"]
+    subgraph integration [Integration layer]
         API["app/<br/>FastAPI /infer /batch<br/>StreamingPerceptor"]
         PLC["Mock PLC / OPC-UA"]
     end
 
-    subgraph Ops["User / ops layer"]
-        DASH["Streamlit dashboard<br/>live viz · KPIs · alerts"]
-        WAYNE["WAYNE<br/>cost / cycle-time / nesting"]
+    subgraph ops [User / ops layer]
+        DASH["Streamlit dashboard<br/>live viz, KPIs, alerts"]
+        COST["Cost and nesting optimizer<br/>cost / cycle-time / nesting"]
     end
 
     ACC --> SIM
@@ -64,7 +65,7 @@ flowchart LR
     SIM --> DSP --> ML --> API
     SIM --> LOG
     ML --> LOG
-    API --> WAYNE
+    API --> COST
     API --> DASH
     PLC --> API
 ```
@@ -170,13 +171,13 @@ later days of the plan and intentionally kept out of the core install.
 
 ---
 
-## Job mapping (Nox Metals — Perception Engineer)
+## Capabilities
 
-This prototype maps 1:1 to the role: **owning the full perception stack**
+This prototype demonstrates **ownership of the full perception stack**
 (sensors on saws/CNC), **vibration for blade wear** and **thermal for cut
 conditions**, an **end-to-end pipeline** (sensor → DSP → labeling → ML →
 edge/cloud inference → monitoring), **Parquet data capture** for ML/ops, **clean
-API interfaces** feeding cost/nesting models (WAYNE), **experiments/ablations**,
+API interfaces** feeding downstream cost/nesting models, **experiments/ablations**,
 and a **builder mindset** shipping a quality v1 fast.
 
 ---
@@ -184,6 +185,6 @@ and a **builder mindset** shipping a quality v1 fast.
 ## Roadmap
 
 Day 1 ✅ sensors + validation → Day 2 dataset + XGBoost baseline → Day 3 DL +
-ONNX → Day 4 streaming + FastAPI → Day 5 Streamlit + WAYNE mock → Day 6
-experiments + Docker/edge → Day 7 polish + demo. Future: swap simulators for a
-real DAQ (Pi + MPU6050 + MLX90640) and add vision depth.
+ONNX → Day 4 streaming + FastAPI → Day 5 Streamlit + cost/nesting integration
+mock → Day 6 experiments + Docker/edge → Day 7 polish + demo. Future: swap
+simulators for a real DAQ (Pi + MPU6050 + MLX90640) and add vision depth.

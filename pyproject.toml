@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "argus-panoptes-perception"
 version = "0.1.0"
-description = "Multi-modal industrial perception stack for aluminum sawing & CNC machining (Nox Metals prototype)."
+description = "Multi-modal industrial perception stack for aluminum sawing & CNC machining."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }

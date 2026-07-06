@@ -1,9 +1,9 @@
 # Argus Panoptes Technical Plan
 
 ## Project Overview
-Argus Panoptes is a complete, runnable one-week prototype of a multi-modal industrial perception stack for aluminum sawing and CNC machining cells at Nox Metals. It demonstrates full ownership of the perception layer (vision, vibration, thermal signals) that feeds accurate data into job costing, cycle time prediction, and nesting optimization (making WAYNE accurate). Built with heavy emphasis on signal processing for blade wear and cut condition monitoring using physics-informed synthetic data.
+Argus Panoptes is a complete, runnable one-week prototype of a multi-modal industrial perception stack for aluminum sawing and CNC machining cells. It demonstrates full ownership of the perception layer (vision, vibration, thermal signals) that feeds accurate data into job costing, cycle time prediction, and nesting optimization (making the downstream cost & nesting optimizer accurate). Built with heavy emphasis on signal processing for blade wear and cut condition monitoring using physics-informed synthetic data.
 
-**Purpose**: Provide a production-ready v1 artifact that maps 1:1 to the Perception Engineer job posting, showcasing end-to-end pipeline, experiments/ablations, edge deployment, team integrations, and rapid shipping capability.
+**Purpose**: Provide a production-ready v1 artifact showcasing an end-to-end pipeline, experiments/ablations, edge deployment, team integrations, and rapid shipping capability.
 
 ## Goals & Alignment with Job Requirements
 - Own full perception stack across factory (sensors on saws/CNC).
@@ -18,7 +18,7 @@ Argus Panoptes is a complete, runnable one-week prototype of a multi-modal indus
 ## High-Level Architecture
 - Physical layer (simulated): Saw/CNC + sensors (accelerometer, IR thermal, optional camera).
 - Edge layer: DSP engine, ML inference (ONNX), data logger.
-- Integration layer: FastAPI service, mock PLC/OPC-UA, payload to WAYNE.
+- Integration layer: FastAPI service, mock PLC/OPC-UA, payload to cost & nesting optimizer.
 - User/ops layer: Streamlit dashboard with live viz, predictions, alerts, optimization lab.
 - Cloud path: Optional fleet aggregation for retraining.
 
@@ -52,7 +52,7 @@ Argus Panoptes is a complete, runnable one-week prototype of a multi-modal indus
 
 ### 5. Inference & Integration
 - `StreamingPerceptor` class for real-time chunk processing.
-- FastAPI endpoints: /infer, /batch, structured JSON payloads for WAYNE (cycle factor, quality, recommendations).
+- FastAPI endpoints: /infer, /batch, structured JSON payloads for the cost & nesting optimizer (cycle factor, quality, recommendations).
 - Mock integrations: PLC tags, ML feature store.
 
 ### 6. Dashboard (Streamlit)
@@ -79,7 +79,7 @@ Argus Panoptes is a complete, runnable one-week prototype of a multi-modal indus
 **Day 2**: Full dataset gen, XGBoost baseline + first ablations.
 **Day 3**: DL models, spectrograms, ONNX export.
 **Day 4**: Streaming inference, Parquet pipeline, FastAPI service.
-**Day 5**: Streamlit dashboard + WAYNE integration mock.
+**Day 5**: Streamlit dashboard + cost & nesting integration mock.
 **Day 6**: Full experiments, robustness tests, Docker/edge prep. (Hardware pilot optional.)
 **Day 7**: Polish, README/docs, demo video recording, final verification.
 
@@ -90,6 +90,6 @@ Argus Panoptes is a complete, runnable one-week prototype of a multi-modal indus
 - Run: `streamlit run app.py` or Docker for full stack.
 - Future: Swap simulator for real DAQ (Pi + MPU6050 + MLX90640), add vision depth.
 
-**Repo Name Suggestion**: `argus-panoptes-perception` or `nox-perception-prototype`
+**Repo Name Suggestion**: `argus-panoptes-perception` or `industrial-perception-prototype`
 
-This plan enables rapid iteration with AI coding workflows while delivering a high-quality, portfolio-ready artifact that proves immediate impact for the Nox Metals role.
+This plan enables rapid iteration with AI coding workflows while delivering a high-quality, portfolio-ready artifact that demonstrates immediate impact for industrial perception and condition-monitoring work.

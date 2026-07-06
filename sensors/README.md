@@ -3,7 +3,7 @@
 The `sensors/` package is the foundation of Argus Panoptes: it produces
 **labeled, physics-informed vibration and thermal signals** for aluminum sawing
 and CNC machining. These signals stand in for a real DAQ during development and
-feed the DSP → ML → inference → WAYNE pipeline.
+feed the DSP → ML → inference → cost/nesting pipeline.
 
 > **Version:** `0.1.0` · **Status:** v1 complete, validated, tested.
 
@@ -155,7 +155,7 @@ simulator version — everything needed to log a queryable Parquet row.
 ## 5. How outputs feed the rest of the stack
 
 ```
-sensors/  ──►  dsp/ (features)  ──►  models/ (XGBoost / CNN / fusion)  ──►  app/ (FastAPI + Streamlit)  ──►  WAYNE
+sensors/  ──►  dsp/ (features)  ──►  models/ (XGBoost / CNN / fusion)  ──►  app/ (FastAPI + Streamlit)  ──►  cost/nesting
    │                                                                              
    └──►  scripts/generate_dataset.py  ──►  data/synthetic_v1/*.parquet (labeled dataset)
 ```
@@ -165,7 +165,7 @@ sensors/  ──►  dsp/ (features)  ──►  models/ (XGBoost / CNN / fusion
 - **ML:** the Parquet dataset (features + labels + metadata) trains wear/RUL
   regression, health classification, and anomaly detection.
 - **Integration:** predictions become `cycle_time_factor` / `quality_score`
-  payloads for WAYNE cost/nesting models.
+  payloads for downstream cost/nesting models.
 
 ---
 

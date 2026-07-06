@@ -6,7 +6,8 @@
 
 - **`StreamingPerceptor`:** real-time chunk processing over a ring buffer.
 - **FastAPI service:** `/infer`, `/batch` endpoints returning structured JSON
-  payloads for WAYNE (cycle-time factor, quality score, recommendations).
+  payloads for the downstream cost/nesting optimizer (cycle-time factor, quality
+  score, recommendations).
 - **Mock integrations:** PLC tags, ML feature store.
 - **Streamlit dashboard:** live simulation controls (param/wear sliders),
   real-time waveform / FFT / STFT / thermal plots, KPI gauges (wear %, RUL,
