@@ -46,6 +46,16 @@ dl = [
     "onnx>=1.16",
     "onnxruntime>=1.18",
 ]
+# Integration / serving path (Day 4): FastAPI service + streaming perceptor +
+# Parquet inference logging. Torch-free at runtime - inference goes through
+# onnxruntime (dl extra) for DL variants or joblib/xgboost (ml extra) for the
+# baseline; install the relevant model extra alongside `app` as needed.
+app = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "python-multipart>=0.0.9",
+    "httpx>=0.27",  # FastAPI TestClient (tests) + optional client use
+]
 
 [tool.setuptools]
 packages = ["sensors", "dsp", "models", "app"]

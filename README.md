@@ -21,7 +21,7 @@ watching the factory floor.
 | **Synthetic data generator**            | `sensors/`      | ✅ **v1 complete**                  |
 | **DSP & feature extraction**            | `dsp/`          | ✅ **v1 implemented (Day 2)** + DL input methods (Day 3) |
 | **ML pipeline & experiments**           | `models/`       | ✅ XGBoost baseline + ablations (Day 2) · ✅ DL + ONNX (Day 3) · ✅ hardened (noise aug, norm ablation) |
-| Inference, FastAPI, Streamlit           | `app/`          | 🚧 scaffold (Day 4–5)               |
+| **Streaming inference + FastAPI**       | `app/`          | ✅ **Day 4 complete** (StreamingPerceptor, Parquet logging, `/infer` `/batch`) · 🚧 Streamlit (Day 5) |
 | Docker / edge                           | `deployment/`   | 🚧 scaffold (Day 6)                 |
 
 This repository currently delivers a **production-quality v1 of the `sensors/`,
@@ -115,7 +115,40 @@ python models/train_dl.py --model fusion --data-dir data/dl_v1 --normalize-for-d
 # Benchmark ONNX CPU latency and run the noise-robustness ablation:
 python scripts/benchmark_onnx.py --model fusion --device cpu
 python experiments/robustness_ablation.py --data-dir data/dl_v1
+
+# 7. (Day 4) Streaming inference + FastAPI service
+pip install -e ".[ml,dl,app]"   # + fastapi, uvicorn, python-multipart, httpx
+# Live simulator -> StreamingPerceptor -> DSP + model -> Parquet log -> payloads:
+python scripts/stream_demo.py --model 1dcnn_normnone --duration-s 5 --wear 0.6
+# Start the HTTP service (interactive docs at http://127.0.0.1:8000/docs):
+uvicorn app.main:app --reload
+# Example single-chunk inference:
+curl -X POST "http://127.0.0.1:8000/infer" \
+    -H "Content-Type: application/json" \
+    -d '{"model": "1dcnn_normnone", "vibration": [0.1, 0.2, -0.1, 0.05], "fs_hz": 40960}'
 ```
+
+### Streaming → perceptor → API in one snippet
+
+```python
+from sensors import SawVibrationSimulator
+from models.streaming_perceptor import StreamingPerceptor
+
+perc = StreamingPerceptor(model="1dcnn_normnone", chunk_s=1.0,
+                          logger={"log_dir": "logs/inference"}).load()
+sim = SawVibrationSimulator()
+for result in perc.stream_from_simulator(sim, duration_s=3.0, wear=0.7, seed=0):
+    p = result["predictions"]
+    print(p["health_state"], round(p["wear_level"], 3),
+          "->", result["recommendations"]["action"])
+perc.close()  # flush Parquet logs
+```
+
+Inference logs land under `logs/inference/` as a partitioned Parquet dataset
+(`records/` by `date`/`model` + a scalar `manifest.parquet`). Read them back with
+`from app.logging import read_logs; read_logs("logs/inference")` or any
+`pyarrow.dataset` query. See [`app/README.md`](app/README.md) for the full API,
+endpoints, env-var config, and model-selection details.
 
 Outputs:
 
@@ -184,15 +217,21 @@ ArgusPanoptes/
 │   ├── dl_models.py        # Vibration1DCNN / SpectrogramCNN / FusionModel + ONNX
 │   ├── dl_data.py          # Parquet -> PyTorch loaders (same split as baseline)
 │   ├── train_dl.py         # DL training CLI (+ same-split XGBoost comparison)
-│   └── onnx_inference.py   # ONNXPerceptor (torch-free edge inference)
-├── app/                # 🚧 FastAPI + Streamlit (scaffold)
+│   ├── onnx_inference.py   # ONNXPerceptor (torch-free edge inference)
+│   └── streaming_perceptor.py  # ✅ StreamingPerceptor (ring buffer + DSP + model)
+├── app/                # ✅ FastAPI service + Parquet inference logging (Day 4)
+│   ├── main.py             # /infer /batch /health /models
+│   ├── logging.py          # InferenceLogger -> partitioned Parquet
+│   ├── config.py           # ARGUS_* env-var config
+│   └── README.md           # 🚧 Streamlit dashboard remains (Day 5)
 ├── deployment/         # 🚧 Dockerfile + compose (scaffold)
 ├── experiments/        # notebooks + generated plots + robustness ablation
 │   └── robustness_ablation.py
 ├── scripts/
 │   ├── validate_simulators.py
 │   ├── generate_dataset.py     # --extract-features / --compute-spectrogram
-│   └── benchmark_onnx.py       # ONNX Runtime CPU latency benchmark
+│   ├── benchmark_onnx.py       # ONNX Runtime CPU latency benchmark
+│   └── stream_demo.py          # ✅ live simulator -> perceptor -> Parquet demo
 ├── tests/              # pytest suites for the simulators
 ├── data/               # generated Parquet (git-ignored)
 ├── requirements.txt / pyproject.toml
@@ -206,8 +245,10 @@ ArgusPanoptes/
 Python 3.11+ · NumPy · SciPy (signal, fft, welch) · Pandas · PyArrow (Parquet) ·
 Pydantic · PyYAML · Matplotlib · pytest. ML via the `[ml]` extra (scikit-learn,
 XGBoost, joblib); DL + edge export via the `[dl]` extra (PyTorch, ONNX, ONNX
-Runtime). App dependencies (FastAPI, Streamlit, Plotly) are deferred to later
-days and kept out of the core install.
+Runtime); the streaming inference service via the `[app]` extra (FastAPI,
+uvicorn, python-multipart, httpx). The service is **torch-free** at runtime (DL
+variants run on ONNX Runtime). Dashboard deps (Streamlit, Plotly) are deferred to
+Day 5 and kept out of the core install.
 
 ---
 
@@ -248,7 +289,8 @@ for XGBoost (DSP extract dominates).
 
 Day 1 ✅ sensors + validation → Day 2 ✅ DSP features + dataset integration +
 XGBoost baseline + ablations → Day 3 ✅ DL + ONNX + benchmarks + robustness
-**hardened** (noise aug, `normalize_for_dl` ablation) → Day 4 streaming
-`Perceptor` + FastAPI (`/infer`, `/batch`) → Day 5 Streamlit + cost/nesting
+**hardened** (noise aug, `normalize_for_dl` ablation) → Day 4 ✅ streaming
+`StreamingPerceptor` + FastAPI (`/infer`, `/batch`, `/health`, `/models`) +
+partitioned Parquet inference logging → Day 5 Streamlit + cost/nesting
 integration mock → Day 6 experiments + Docker/edge → Day 7 polish + demo. Future:
 swap simulators for a real DAQ (Pi + MPU6050 + MLX90640) and add vision depth.

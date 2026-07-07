@@ -37,6 +37,9 @@ ENV/
 /data/
 *.parquet
 
+# --- Inference logs (generated at runtime; keep tracked *.md session logs) ---
+/logs/inference/
+
 # --- Notebooks ---
 notebooks/.ipynb_checkpoints/
 .ipynb_checkpoints/

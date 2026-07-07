@@ -36,6 +36,14 @@ pytest>=7.4
 # The DL training script also uses the ml extra for its XGBoost comparison:
 #     pip install -e ".[ml,dl]"
 #
+# Integration / serving (Day 4) is the "app" extra:
+#     pip install -e ".[app]"
+# which pulls in:
+#   fastapi>=0.110, uvicorn[standard]>=0.29, python-multipart>=0.0.9, httpx>=0.27
+# The service is torch-free: DL variants run via onnxruntime (dl extra) and the
+# XGBoost baseline via joblib/xgboost (ml extra). A typical serving install is:
+#     pip install -e ".[ml,dl,app]"
+#
 # Still deferred to later days of the execution plan:
-#   App:       fastapi, uvicorn, streamlit, plotly   (Days 4-5)
+#   Dashboard: streamlit, plotly                     (Day 5)
 # ---------------------------------------------------------------------------
