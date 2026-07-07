@@ -1,0 +1,62 @@
+# =============================================================================
+# Argus Panoptes v1 - DSP / Feature-Extraction Specification
+# -----------------------------------------------------------------------------
+# Authoritative, human-editable configuration for the SignalProcessor. Mirrors
+# the style of sensors/sensor_specs.yaml: every key names its units explicitly
+# and every value is overridable at runtime (see dsp.config.load_processor_config).
+#
+# Physics rationale is documented inline. The defaults target the vibration
+# accelerometer path (fs ~ 40.96 kHz, tooth-pass fundamentals of a few hundred
+# Hz up to a few kHz of harmonics, plus wear-driven broadband up to ~18 kHz).
+# =============================================================================
+
+processor_version: "0.1.0"
+
+# -----------------------------------------------------------------------------
+# Preprocessing: detrend -> band-pass -> (optional) amplitude normalization.
+# -----------------------------------------------------------------------------
+preprocess:
+  detrend: "linear"        # "linear" | "constant" | "none" (remove DC / slow drift)
+
+  bandpass:
+    enabled: true
+    low_hz: 100.0          # high-pass corner: drop DC + very-low-freq 1/f drift
+    high_hz: 18000.0       # low-pass corner: keep tooth-pass harmonics + broadband,
+                           # clamped below Nyquist at runtime for any fs
+    order: 4               # Butterworth order (zero-phase via filtfilt)
+
+  # Amplitude normalization. Default "none" is deliberate: with blade wear both
+  # the tooth-impact amplitude (rising cutting force) AND the broadband RMS grow,
+  # so absolute amplitude is a first-class wear feature. Normalizing per-window
+  # would discard it. Scale-invariant normalization ("zscore"/"peak") is retained
+  # for the Day-3 CNN path, where per-window scale invariance aids generalization.
+  normalize: "none"        # "none" | "zscore" | "peak" | "rms"
+
+# -----------------------------------------------------------------------------
+# Frequency-domain analysis (Welch PSD + spectral shape + TPF-relative bands).
+# -----------------------------------------------------------------------------
+frequency:
+  welch_nperseg: 8192      # Welch segment length (>= this gives ~5 Hz bins @ 40.96 kHz)
+  welch_overlap: 0.5       # fractional overlap between Welch segments
+  window: "hann"           # Welch window
+  rolloff_fraction: 0.95   # spectral-rolloff cumulative-energy threshold
+
+  # TPF-relative bands are the highest-value blade-wear features: tooth-engagement
+  # impacts deposit energy at the tooth-pass frequency (TPF) and its harmonics,
+  # and impact amplitude rises with cutting force (hence with wear).
+  tpf_band_frac: 0.25      # half-width fraction: fundamental band = [tpf*0.75, tpf*1.25]
+  n_harmonics: 3           # number of TPF harmonics to band-integrate (1x, 2x, 3x)
+
+  # Broadband high-frequency band: stochastic chip-formation / edge-friction
+  # energy that grows with wear (see sensors broadband_wear_gain).
+  broadband_band_hz: [6000.0, 18000.0]
+
+# -----------------------------------------------------------------------------
+# Time-frequency (STFT) spectrogram - not computed on the scalar-feature path
+# by default; enabled for the Day-3 spectrogram-CNN models.
+# -----------------------------------------------------------------------------
+stft:
+  nperseg: 1024            # STFT window length (samples)
+  overlap: 0.75            # fractional overlap between STFT windows
+  window: "hann"
+  log_scale: true          # return 10*log10(power + eps) instead of linear power

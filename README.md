@@ -16,18 +16,20 @@ watching the factory floor.
 
 ## Status
 
-| Layer                                   | Module          | Status               |
-| --------------------------------------- | --------------- | -------------------- |
-| **Synthetic data generator**            | `sensors/`      | ✅ **v1 complete**   |
-| DSP & feature extraction                | `dsp/`          | 🚧 scaffold (Day 1–2)|
-| ML pipeline & experiments               | `models/`       | 🚧 scaffold (Day 2–3)|
-| Inference, FastAPI, Streamlit           | `app/`          | 🚧 scaffold (Day 4–5)|
-| Docker / edge                           | `deployment/`   | 🚧 scaffold (Day 6)  |
+| Layer                                   | Module          | Status                              |
+| --------------------------------------- | --------------- | ----------------------------------- |
+| **Synthetic data generator**            | `sensors/`      | ✅ **v1 complete**                  |
+| **DSP & feature extraction**            | `dsp/`          | ✅ **v1 implemented (Day 2)**       |
+| ML pipeline & experiments               | `models/`       | 🚧 XGBoost baseline + ablations (Day 2) |
+| Inference, FastAPI, Streamlit           | `app/`          | 🚧 scaffold (Day 4–5)               |
+| Docker / edge                           | `deployment/`   | 🚧 scaffold (Day 6)                 |
 
 This repository currently delivers a **production-quality v1 of the `sensors/`
-module**: physics-informed vibration + thermal simulators, labels, validation,
-tests, and a Parquet dataset-generation pipeline. The rest of the structure is
-scaffolded so the one-week plan can proceed immediately.
+and `dsp/` modules**: physics-informed vibration + thermal simulators, labels,
+validation, a Parquet dataset-generation pipeline, a modular `SignalProcessor`
+that extracts time/frequency features (including tooth-pass-relative band
+energies), and interpretable **XGBoost baselines + ablations** on those features.
+The remaining layers are scaffolded so the one-week plan can proceed immediately.
 
 ---
 
@@ -86,6 +88,11 @@ pytest
 
 # 4. Generate a labeled synthetic dataset (Parquet)
 python scripts/generate_dataset.py --num-samples 500 --output-dir data/synthetic_v1
+
+# 5. (Optional) Generate with DSP features + train the XGBoost baseline
+pip install -e ".[ml]"   # scikit-learn, xgboost, joblib
+python scripts/generate_dataset.py --num-samples 300 --output-dir data/synthetic_v1 --extract-features
+python models/baseline.py --data-dir data/synthetic_v1
 ```
 
 Outputs:
@@ -146,8 +153,12 @@ ArgusPanoptes/
 │   ├── vibration_simulator.py
 │   ├── thermal_simulator.py
 │   └── README.md
-├── dsp/                # 🚧 feature extraction (scaffold)
-├── models/             # 🚧 ML pipeline (scaffold)
+├── dsp/                # ✅ SignalProcessor: features + STFT (v1, Day 2)
+│   ├── processor_config.yaml
+│   ├── config.py       # pydantic config + loader
+│   └── signal_processor.py
+├── models/             # 🚧 XGBoost baseline + ablations (Day 2)
+│   └── baseline.py
 ├── app/                # 🚧 FastAPI + Streamlit (scaffold)
 ├── deployment/         # 🚧 Dockerfile + compose (scaffold)
 ├── experiments/        # notebooks + generated plots
@@ -184,7 +195,8 @@ and a **builder mindset** shipping a quality v1 fast.
 
 ## Roadmap
 
-Day 1 ✅ sensors + validation → Day 2 dataset + XGBoost baseline → Day 3 DL +
-ONNX → Day 4 streaming + FastAPI → Day 5 Streamlit + cost/nesting integration
-mock → Day 6 experiments + Docker/edge → Day 7 polish + demo. Future: swap
-simulators for a real DAQ (Pi + MPU6050 + MLX90640) and add vision depth.
+Day 1 ✅ sensors + validation → Day 2 ✅ DSP features + dataset integration +
+XGBoost baseline + ablations → Day 3 DL (1D-CNN + spectrogram) + ONNX → Day 4
+streaming + FastAPI → Day 5 Streamlit + cost/nesting integration mock → Day 6
+experiments + Docker/edge → Day 7 polish + demo. Future: swap simulators for a
+real DAQ (Pi + MPU6050 + MLX90640) and add vision depth.

@@ -1,0 +1,366 @@
+{
+  "seed": 42,
+  "n_samples": 300,
+  "n_train": 240,
+  "n_test": 60,
+  "feature_groups": {
+    "time": [
+      "vib_td_rms",
+      "vib_td_peak",
+      "vib_td_peak_to_peak",
+      "vib_td_crest_factor",
+      "vib_td_kurtosis",
+      "vib_td_skewness",
+      "vib_td_shape_factor",
+      "vib_td_impulse_factor",
+      "vib_td_clearance_factor",
+      "vib_td_margin_factor",
+      "vib_td_zero_crossing_rate",
+      "vib_td_envelope_mean",
+      "vib_td_envelope_std"
+    ],
+    "freq": [
+      "vib_fd_total_power",
+      "vib_fd_spectral_centroid_hz",
+      "vib_fd_spectral_rolloff_hz",
+      "vib_fd_spectral_flatness",
+      "vib_fd_spectral_bandwidth_hz",
+      "vib_fd_dominant_freq_hz",
+      "vib_fd_dominant_amplitude",
+      "vib_fd_broadband_energy",
+      "vib_fd_broadband_ratio",
+      "vib_fd_tpf_band_energy",
+      "vib_fd_tpf_harmonic2_energy",
+      "vib_fd_tpf_harmonic3_energy",
+      "vib_fd_tpf_harmonic_energy_total",
+      "vib_fd_tpf_band_ratio",
+      "vib_fd_harmonic_to_fundamental_ratio"
+    ],
+    "thermal": [
+      "mean_temp_c",
+      "max_temp_c",
+      "temp_rise_c",
+      "therm_std_c",
+      "therm_slope_c_per_s"
+    ],
+    "context": [
+      "blade_speed_sfpm",
+      "num_teeth",
+      "feed_per_tooth_mm",
+      "depth_mm",
+      "kerf_width_mm",
+      "tooth_pass_freq_hz",
+      "rpm",
+      "cutting_velocity_m_s",
+      "material_removal_rate_mm3_s"
+    ],
+    "all": [
+      "vib_td_rms",
+      "vib_td_peak",
+      "vib_td_peak_to_peak",
+      "vib_td_crest_factor",
+      "vib_td_kurtosis",
+      "vib_td_skewness",
+      "vib_td_shape_factor",
+      "vib_td_impulse_factor",
+      "vib_td_clearance_factor",
+      "vib_td_margin_factor",
+      "vib_td_zero_crossing_rate",
+      "vib_td_envelope_mean",
+      "vib_td_envelope_std",
+      "vib_fd_total_power",
+      "vib_fd_spectral_centroid_hz",
+      "vib_fd_spectral_rolloff_hz",
+      "vib_fd_spectral_flatness",
+      "vib_fd_spectral_bandwidth_hz",
+      "vib_fd_dominant_freq_hz",
+      "vib_fd_dominant_amplitude",
+      "vib_fd_broadband_energy",
+      "vib_fd_broadband_ratio",
+      "vib_fd_tpf_band_energy",
+      "vib_fd_tpf_harmonic2_energy",
+      "vib_fd_tpf_harmonic3_energy",
+      "vib_fd_tpf_harmonic_energy_total",
+      "vib_fd_tpf_band_ratio",
+      "vib_fd_harmonic_to_fundamental_ratio",
+      "mean_temp_c",
+      "max_temp_c",
+      "temp_rise_c",
+      "therm_std_c",
+      "therm_slope_c_per_s",
+      "blade_speed_sfpm",
+      "num_teeth",
+      "feed_per_tooth_mm",
+      "depth_mm",
+      "kerf_width_mm",
+      "tooth_pass_freq_hz",
+      "rpm",
+      "cutting_velocity_m_s",
+      "material_removal_rate_mm3_s"
+    ]
+  },
+  "regression": {
+    "wear_level": {
+      "mae": 0.15026585885444582,
+      "rmse": 0.18624921381476872,
+      "r2": 0.5580206911209893,
+      "best_iteration": 363,
+      "top_features": [
+        [
+          "vib_fd_dominant_amplitude",
+          0.33064714074134827
+        ],
+        [
+          "therm_slope_c_per_s",
+          0.05822910740971565
+        ],
+        [
+          "max_temp_c",
+          0.049414750188589096
+        ],
+        [
+          "vib_td_peak_to_peak",
+          0.04931071028113365
+        ],
+        [
+          "material_removal_rate_mm3_s",
+          0.043032024055719376
+        ],
+        [
+          "vib_td_margin_factor",
+          0.034476250410079956
+        ],
+        [
+          "vib_td_envelope_mean",
+          0.032704055309295654
+        ],
+        [
+          "vib_fd_tpf_harmonic2_energy",
+          0.028696808964014053
+        ],
+        [
+          "vib_fd_broadband_energy",
+          0.028361091390252113
+        ],
+        [
+          "vib_fd_tpf_band_energy",
+          0.025593746453523636
+        ]
+      ]
+    },
+    "cycle_time_factor": {
+      "mae": 0.06991895214249766,
+      "rmse": 0.08693006784236608,
+      "r2": 0.5547056616236516,
+      "best_iteration": 366,
+      "top_features": [
+        [
+          "vib_fd_dominant_amplitude",
+          0.28776440024375916
+        ],
+        [
+          "therm_slope_c_per_s",
+          0.06692036241292953
+        ],
+        [
+          "temp_rise_c",
+          0.0648970752954483
+        ],
+        [
+          "max_temp_c",
+          0.052408043295145035
+        ],
+        [
+          "vib_td_peak_to_peak",
+          0.044337134808301926
+        ],
+        [
+          "vib_td_envelope_mean",
+          0.03974371403455734
+        ],
+        [
+          "material_removal_rate_mm3_s",
+          0.03852536529302597
+        ],
+        [
+          "vib_td_margin_factor",
+          0.03389681503176689
+        ],
+        [
+          "vib_fd_broadband_energy",
+          0.028906451538205147
+        ],
+        [
+          "vib_fd_tpf_harmonic2_energy",
+          0.026000749319791794
+        ]
+      ]
+    },
+    "quality_score": {
+      "mae": 0.07468900625105633,
+      "rmse": 0.09319517722731306,
+      "r2": 0.5569643821297163,
+      "best_iteration": 301,
+      "top_features": [
+        [
+          "vib_fd_dominant_amplitude",
+          0.30704766511917114
+        ],
+        [
+          "therm_slope_c_per_s",
+          0.06677743047475815
+        ],
+        [
+          "vib_td_envelope_mean",
+          0.057081982493400574
+        ],
+        [
+          "vib_td_peak_to_peak",
+          0.04857860133051872
+        ],
+        [
+          "max_temp_c",
+          0.04697407782077789
+        ],
+        [
+          "material_removal_rate_mm3_s",
+          0.04403308779001236
+        ],
+        [
+          "vib_td_margin_factor",
+          0.04319455102086067
+        ],
+        [
+          "vib_fd_tpf_harmonic2_energy",
+          0.027505507692694664
+        ],
+        [
+          "vib_fd_broadband_energy",
+          0.025098348036408424
+        ],
+        [
+          "vib_fd_dominant_freq_hz",
+          0.024554334580898285
+        ]
+      ]
+    }
+  },
+  "classification": {
+    "health_state": {
+      "accuracy": 0.5166666666666667,
+      "macro_f1": 0.44488644090847274,
+      "classes": [
+        "critical",
+        "healthy",
+        "monitor",
+        "warning"
+      ],
+      "report": {
+        "critical": {
+          "precision": 0.3333333333333333,
+          "recall": 0.16666666666666666,
+          "f1-score": 0.2222222222222222,
+          "support": 6.0
+        },
+        "healthy": {
+          "precision": 0.625,
+          "recall": 0.7894736842105263,
+          "f1-score": 0.6976744186046512,
+          "support": 19.0
+        },
+        "monitor": {
+          "precision": 0.3125,
+          "recall": 0.35714285714285715,
+          "f1-score": 0.3333333333333333,
+          "support": 14.0
+        },
+        "warning": {
+          "precision": 0.5882352941176471,
+          "recall": 0.47619047619047616,
+          "f1-score": 0.5263157894736842,
+          "support": 21.0
+        },
+        "accuracy": 0.5166666666666667,
+        "macro avg": {
+          "precision": 0.46476715686274506,
+          "recall": 0.4473684210526315,
+          "f1-score": 0.44488644090847274,
+          "support": 60.0
+        },
+        "weighted avg": {
+          "precision": 0.5100490196078431,
+          "recall": 0.5166666666666667,
+          "f1-score": 0.5051407588739291,
+          "support": 60.0
+        }
+      },
+      "top_features": [
+        [
+          "temp_rise_c",
+          0.0929623618721962
+        ],
+        [
+          "vib_fd_total_power",
+          0.04750638082623482
+        ],
+        [
+          "max_temp_c",
+          0.04742498695850372
+        ],
+        [
+          "vib_fd_tpf_band_energy",
+          0.043763160705566406
+        ],
+        [
+          "vib_td_envelope_std",
+          0.03747851029038429
+        ],
+        [
+          "vib_td_peak_to_peak",
+          0.03551461547613144
+        ],
+        [
+          "vib_td_margin_factor",
+          0.03444172069430351
+        ],
+        [
+          "vib_fd_tpf_harmonic_energy_total",
+          0.030612830072641373
+        ],
+        [
+          "vib_td_envelope_mean",
+          0.02836747281253338
+        ],
+        [
+          "vib_td_crest_factor",
+          0.027379397302865982
+        ]
+      ]
+    }
+  },
+  "ablation": {
+    "wear_level": {
+      "time_only": {
+        "mae": 0.2439132199762412,
+        "rmse": 0.27933001827772114,
+        "r2": 0.0058583671802144854,
+        "n_features": 13,
+        "delta_mae_vs_all": 0.09364736112179539
+      },
+      "freq_only": {
+        "mae": 0.23335657875519475,
+        "rmse": 0.2718802562373103,
+        "r2": 0.05817897095060964,
+        "n_features": 15,
+        "delta_mae_vs_all": 0.08309071990074893
+      },
+      "all": {
+        "mae": 0.15026585885444582,
+        "rmse": 0.18624921381476872,
+        "r2": 0.5580206911209893,
+        "n_features": 42,
+        "delta_mae_vs_all": 0.0
+      }
+    }
+  }
+}

@@ -31,6 +31,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=7.4", "ruff>=0.1"]
+ml = [
+    "scikit-learn>=1.5",
+    "xgboost>=2.1",
+    "joblib>=1.4",
+    # shap>=0.46  # optional for later interpretability
+]
 
 [tool.setuptools]
 packages = ["sensors", "dsp", "models", "app"]

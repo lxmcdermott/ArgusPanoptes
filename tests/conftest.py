@@ -25,3 +25,10 @@ def vib(config):
 @pytest.fixture()
 def therm(config):
     return ThermalSimulator(config)
+
+
+@pytest.fixture()
+def proc():
+    from dsp import SignalProcessor
+
+    return SignalProcessor()

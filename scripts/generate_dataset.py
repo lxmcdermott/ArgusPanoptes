@@ -8,12 +8,20 @@ plus a lightweight ``manifest.parquet`` for fast querying.
 Raw waveforms are stored as ``float32`` list columns alongside the tabular
 metadata so a single Parquet read yields both features and signals.
 
+Optionally (``--extract-features``) the DSP :class:`~dsp.signal_processor.SignalProcessor`
+is run on every vibration waveform and a handful of thermal statistics are
+computed, and the resulting scalar features are merged into ``manifest.parquet``
+(the raw waveform record columns are left untouched). This is **opt-in** and off
+by default, so the default schema/behavior is unchanged.
+
 Usage
 -----
     python scripts/generate_dataset.py --num-samples 500
     python scripts/generate_dataset.py --num-samples 2000 --output-dir data/synthetic_v1 \
         --seed 7 --flush-every 250
     python scripts/generate_dataset.py --num-samples 100 --duration-s 3.0
+    python scripts/generate_dataset.py --num-samples 300 --output-dir data/test_dsp_v1 \
+        --extract-features
 """
 
 from __future__ import annotations
@@ -86,14 +94,39 @@ def sample_operating_point(
 # --------------------------------------------------------------------------- #
 # Row assembly
 # --------------------------------------------------------------------------- #
+def _thermal_feature_stats(temp: np.ndarray, fs_hz: float) -> dict[str, float]:
+    """A few cheap DSP-derived thermal statistics (heating dynamics rise w/ wear).
+
+    ``therm_std_c`` captures thermal roughness / transient content and
+    ``therm_slope_c_per_s`` the mean cut-zone heating rate (both grow as friction
+    heat increases with wear). These complement the closed-form thermal metadata
+    already carried in the manifest (mean/max/steady-state/rise).
+    """
+    n = temp.size
+    std_c = float(np.std(temp))
+    if n >= 2 and fs_hz > 0:
+        tt = np.arange(n, dtype=np.float64) / fs_hz
+        slope = float(np.polyfit(tt, temp.astype(np.float64), 1)[0])
+    else:  # pragma: no cover - guarded by simulator (n>=2)
+        slope = 0.0
+    return {"therm_std_c": std_c, "therm_slope_c_per_s": slope}
+
+
 def build_row(
     vib: SawVibrationSimulator,
     therm: ThermalSimulator,
     op: dict[str, Any],
     sample_id: int,
     seed: int,
+    processor: "Any | None" = None,
 ) -> dict[str, Any]:
-    """Run both simulators for one operating point and assemble a dataset row."""
+    """Run both simulators for one operating point and assemble a dataset row.
+
+    When ``processor`` (a ``dsp.SignalProcessor``) is supplied, its scalar
+    features are extracted from the vibration waveform (``vib_td_*`` / ``vib_fd_*``
+    columns) and a few thermal statistics are added (``therm_*``). This is
+    additive: the base columns are identical whether or not ``processor`` is set.
+    """
     params = {k: op[k] for k in ("alloy", "blade_speed_sfpm", "feed_per_tooth_mm",
                                  "depth_mm", "kerf_width_mm", "num_teeth")}
     wear = op["wear"]
@@ -160,6 +193,13 @@ def build_row(
         "vibration_waveform": accel.astype(np.float32),
         "thermal_waveform": temp.astype(np.float32),
     }
+
+    # --- optional DSP-extracted scalar features (opt-in, additive) ---
+    if processor is not None:
+        vib_features = processor.process(accel, fs=vm["fs_hz"], metadata=vm)["features"]
+        row.update({f"vib_{k}": v for k, v in vib_features.items()})
+        row.update(_thermal_feature_stats(temp, tm["fs_hz"]))
+
     return row
 
 
@@ -197,6 +237,12 @@ def flush_batch(rows: list[dict[str, Any]], records_dir: Path, batch_idx: int) -
 # --------------------------------------------------------------------------- #
 # Summary
 # --------------------------------------------------------------------------- #
+def _feature_columns(df: "Any") -> list[str]:
+    """DSP-extracted feature columns (present only with --extract-features)."""
+    prefixes = ("vib_td_", "vib_fd_", "therm_std_c", "therm_slope_c_per_s")
+    return [c for c in df.columns if any(c.startswith(p) for p in prefixes)]
+
+
 def print_summary(manifest_rows: list[dict[str, Any]], out_dir: Path, records_dir: Path) -> None:
     import pandas as pd
 
@@ -223,6 +269,32 @@ def print_summary(manifest_rows: list[dict[str, Any]], out_dir: Path, records_di
         corr = df["wear"].corr(df[col])
         logger.info("    corr(wear, %-24s) = %+.3f", col, corr)
 
+    # --- DSP feature report (only when --extract-features was used) ---
+    feature_cols = _feature_columns(df)
+    if feature_cols:
+        logger.info("-" * 68)
+        logger.info("DSP FEATURES: %d extracted per sample (columns: %s ... )",
+                    len(feature_cols), ", ".join(feature_cols[:4]))
+        targets = [
+            ("label_wear_level", "wear_level"),
+            ("label_quality_score", "quality_score"),
+            ("label_cycle_time_factor", "cycle_time_factor"),
+        ]
+        for tcol, tname in targets:
+            if tcol not in df.columns:
+                continue
+            corrs = (
+                df[feature_cols]
+                .apply(lambda s: s.corr(df[tcol]))
+                .dropna()
+                .abs()
+                .sort_values(ascending=False)
+            )
+            logger.info("Top feature correlations with %s:", tname)
+            for name, val in corrs.head(6).items():
+                signed = df[name].corr(df[tcol])
+                logger.info("    corr(%-28s, %-16s) = %+.3f", name, tname, signed)
+
     parquet_files = list(records_dir.rglob("*.parquet"))
     total_bytes = sum(p.stat().st_size for p in parquet_files)
     total_bytes += (out_dir / "manifest.parquet").stat().st_size
@@ -244,10 +316,21 @@ def generate(
     duration_s: float | None,
     flush_every: int,
     config_path: Path | None,
+    extract_features: bool = False,
+    processor_config_path: Path | None = None,
 ) -> None:
     cfg = load_config(config_path)
     vib = SawVibrationSimulator(cfg)
     therm = ThermalSimulator(cfg)
+
+    processor = None
+    if extract_features:
+        from dsp import SignalProcessor  # local import: keeps default path dsp-free
+
+        processor = SignalProcessor(
+            str(processor_config_path) if processor_config_path else None
+        )
+        logger.info("DSP feature extraction ENABLED (processor v%s)", processor.version)
 
     output_dir.mkdir(parents=True, exist_ok=True)
     records_dir = output_dir / "records"
@@ -263,7 +346,7 @@ def generate(
 
     for i in tqdm(range(num_samples), desc="samples", unit="smp"):
         op = sample_operating_point(cfg, rng, duration_s)
-        row = build_row(vib, therm, op, sample_id=i, seed=seed + i)
+        row = build_row(vib, therm, op, sample_id=i, seed=seed + i, processor=processor)
         batch.append(row)
         manifest_rows.append({k: v for k, v in row.items() if k not in WAVEFORM_COLS})
 
@@ -303,6 +386,20 @@ def main() -> int:
     parser.add_argument(
         "--config", type=Path, default=None, help="Optional path to an alternative sensor_specs.yaml."
     )
+    parser.add_argument(
+        "--extract-features",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Run the DSP SignalProcessor on each vibration waveform and merge "
+        "scalar features (vib_td_*/vib_fd_*/therm_*) into manifest.parquet. "
+        "Opt-in; OFF by default so the default schema is unchanged.",
+    )
+    parser.add_argument(
+        "--processor-config",
+        type=Path,
+        default=None,
+        help="Optional path to an alternative dsp/processor_config.yaml (with --extract-features).",
+    )
     args = parser.parse_args()
 
     if args.num_samples <= 0:
@@ -315,6 +412,8 @@ def main() -> int:
         duration_s=args.duration_s,
         flush_every=args.flush_every,
         config_path=args.config,
+        extract_features=args.extract_features,
+        processor_config_path=args.processor_config,
     )
     return 0
 

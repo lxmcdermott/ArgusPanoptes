@@ -1,13 +1,48 @@
 """DSP & feature-extraction layer for Argus Panoptes.
 
-Planned (Day 1-2 of the execution plan): a modular ``SignalProcessor`` class
-providing detrend / bandpass / normalization preprocessing, time-domain
-features (RMS, crest factor, kurtosis, skewness, peak-to-peak), frequency-domain
-features (Welch PSD, band energies, spectral centroid/rolloff/flatness, dominant
-peaks) and time-frequency STFT spectrograms, all driven by YAML config.
+Public API
+----------
+>>> from dsp import SignalProcessor, load_processor_config
+>>> sp = SignalProcessor()
+>>> from sensors import SawVibrationSimulator
+>>> t, accel, meta = SawVibrationSimulator().generate(duration_s=2.0, wear=0.6, seed=0)
+>>> result = sp.process(accel, fs=meta["fs_hz"], metadata=meta)
+>>> result["features"]["fd_tpf_band_energy"]  # doctest: +SKIP
 
-This package is intentionally a scaffold for v1; see the technical plan
-(Key Technical Component #2) for the full specification.
+The modular :class:`SignalProcessor` provides detrend / band-pass / (optional)
+normalization preprocessing, time-domain features (RMS, crest / shape / impulse
+/ clearance / margin factors, kurtosis, skewness, peak-to-peak, zero-crossing
+rate, envelope stats), frequency-domain features (Welch PSD, spectral centroid /
+rolloff / flatness / bandwidth, dominant peak, and TPF-relative band energies)
+and an optional STFT spectrogram, all driven by a YAML config that mirrors
+``sensors/sensor_specs.yaml``.
 """
 
-__version__ = "0.0.0"
+from __future__ import annotations
+
+from dsp.config import (
+    ProcessorConfig,
+    PreprocessConfig,
+    FrequencyConfig,
+    StftConfig,
+    load_processor_config,
+)
+from dsp.signal_processor import (
+    FREQUENCY_DOMAIN_FEATURES,
+    TIME_DOMAIN_FEATURES,
+    SignalProcessor,
+)
+
+__version__ = "0.1.0"
+
+__all__ = [
+    "SignalProcessor",
+    "load_processor_config",
+    "ProcessorConfig",
+    "PreprocessConfig",
+    "FrequencyConfig",
+    "StftConfig",
+    "TIME_DOMAIN_FEATURES",
+    "FREQUENCY_DOMAIN_FEATURES",
+    "__version__",
+]
