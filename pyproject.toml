@@ -56,9 +56,19 @@ app = [
     "python-multipart>=0.0.9",
     "httpx>=0.27",  # FastAPI TestClient (tests) + optional client use
 ]
+# Operator dashboard (Day 5): the Streamlit + Plotly monitoring UI in
+# `dashboard.py` (helpers in the `dashviz` package). Runs standalone against an
+# in-process StreamingPerceptor (lowest latency) or, optionally, against the
+# FastAPI service over HTTP (httpx). Pair with `ml` and/or `dl` so the selected
+# model artifacts can load, e.g. `pip install -e ".[ml,dl,app,dashboard]"`.
+dashboard = [
+    "streamlit>=1.36",
+    "plotly>=5.22",
+    "httpx>=0.27",  # optional API-mode client
+]
 
 [tool.setuptools]
-packages = ["sensors", "dsp", "models", "app"]
+packages = ["sensors", "dsp", "models", "app", "dashviz"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

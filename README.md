@@ -21,7 +21,8 @@ watching the factory floor.
 | **Synthetic data generator**            | `sensors/`      | ✅ **v1 complete**                  |
 | **DSP & feature extraction**            | `dsp/`          | ✅ **v1 implemented (Day 2)** + DL input methods (Day 3) |
 | **ML pipeline & experiments**           | `models/`       | ✅ XGBoost baseline + ablations (Day 2) · ✅ DL + ONNX (Day 3) · ✅ hardened (noise aug, norm ablation) |
-| **Streaming inference + FastAPI**       | `app/`          | ✅ **Day 4 complete** (StreamingPerceptor, Parquet logging, `/infer` `/batch`) · 🚧 Streamlit (Day 5) |
+| **Streaming inference + FastAPI**       | `app/`          | ✅ **Day 4 complete** (StreamingPerceptor, Parquet logging, `/infer` `/batch`) |
+| **Streamlit dashboard**                 | `dashboard.py`  | ✅ **Day 5 complete** (live monitor, lab, history, optimization sandbox) |
 | Docker / edge                           | `deployment/`   | 🚧 scaffold (Day 6)                 |
 
 This repository currently delivers a **production-quality v1 of the `sensors/`,
@@ -128,6 +129,39 @@ curl -X POST "http://127.0.0.1:8000/infer" \
     -d '{"model": "1dcnn_normnone", "vibration": [0.1, 0.2, -0.1, 0.05], "fs_hz": 40960}'
 ```
 
+### Dashboard (Day 5)
+
+Install the dashboard extra alongside the model artifacts you want to load:
+
+```bash
+pip install -e ".[ml,dl,app,dashboard]"
+streamlit run dashboard.py
+```
+
+The UI opens at `http://localhost:8501` by default. **Standalone (direct)** mode runs an
+in-process `StreamingPerceptor` for the lowest-latency demos and screen recordings.
+**Connected to API** mode calls the FastAPI service (`uvicorn app.main:app --reload`) over
+HTTP for a true client/server showcase.
+
+| Tab | Purpose |
+| --- | --- |
+| **Live Monitor** | Real-time waveform / FFT / STFT, KPI gauges, alerts, recommendations; self-refreshing live simulation via demo scenarios |
+| **Simulation Lab** | Single / multi-model / batch runs, robustness presets, export JSON/CSV |
+| **Historical Explorer** | Filter partitioned Parquet inference logs, trend charts, record drill-down |
+| **Optimization Sandbox** | Transparent downstream production-impact model + structured planner payload |
+| **System & Models** | Model inventory, ONNX latency benchmarks, quick tester, config inspector |
+
+**Demo usage:** open the sidebar **Demo scenarios** expander and click **Launch scenario**
+for a one-click, repeatable live run (Normal Operation, Progressive Wear, Sudden Anomaly,
+Noisy Sensor Robustness). Enable **Persist live predictions to Parquet** under Utilities
+so Historical Explorer picks up live runs. Generate seed logs with:
+
+```bash
+python scripts/stream_demo.py --model 1dcnn_normnone --duration-s 5 --wear 0.6
+```
+
+<!-- Screenshots / GIFs: add `docs/dashboard-live.png`, `docs/dashboard-lab.png` here -->
+
 ### Streaming → perceptor → API in one snippet
 
 ```python
@@ -223,7 +257,15 @@ ArgusPanoptes/
 │   ├── main.py             # /infer /batch /health /models
 │   ├── logging.py          # InferenceLogger -> partitioned Parquet
 │   ├── config.py           # ARGUS_* env-var config
-│   └── README.md           # 🚧 Streamlit dashboard remains (Day 5)
+│   └── README.md
+├── dashviz/            # ✅ Streamlit dashboard helpers (Day 5)
+│   ├── theme.py            # dark industrial theme + styled components
+│   ├── plots.py            # Plotly figure builders (waveform, FFT, STFT, gauges)
+│   ├── infra.py            # session state, caching, unified inference
+│   ├── optimization.py     # downstream production-impact model
+│   ├── scenarios.py        # pre-built demo scenarios
+│   └── metrics.py          # experiment metric JSON loaders
+├── dashboard.py        # ✅ Streamlit operator dashboard (Day 5 entry point)
 ├── deployment/         # 🚧 Dockerfile + compose (scaffold)
 ├── experiments/        # notebooks + generated plots + robustness ablation
 │   └── robustness_ablation.py
@@ -246,9 +288,9 @@ Python 3.11+ · NumPy · SciPy (signal, fft, welch) · Pandas · PyArrow (Parque
 Pydantic · PyYAML · Matplotlib · pytest. ML via the `[ml]` extra (scikit-learn,
 XGBoost, joblib); DL + edge export via the `[dl]` extra (PyTorch, ONNX, ONNX
 Runtime); the streaming inference service via the `[app]` extra (FastAPI,
-uvicorn, python-multipart, httpx). The service is **torch-free** at runtime (DL
-variants run on ONNX Runtime). Dashboard deps (Streamlit, Plotly) are deferred to
-Day 5 and kept out of the core install.
+uvicorn, python-multipart, httpx). The operator dashboard via the `[dashboard]` extra
+(Streamlit, Plotly). The service is **torch-free** at runtime (DL
+variants run on ONNX Runtime).
 
 ---
 
@@ -291,6 +333,6 @@ Day 1 ✅ sensors + validation → Day 2 ✅ DSP features + dataset integration 
 XGBoost baseline + ablations → Day 3 ✅ DL + ONNX + benchmarks + robustness
 **hardened** (noise aug, `normalize_for_dl` ablation) → Day 4 ✅ streaming
 `StreamingPerceptor` + FastAPI (`/infer`, `/batch`, `/health`, `/models`) +
-partitioned Parquet inference logging → Day 5 Streamlit + cost/nesting
+partitioned Parquet inference logging → Day 5 ✅ Streamlit dashboard + cost/nesting
 integration mock → Day 6 experiments + Docker/edge → Day 7 polish + demo. Future:
 swap simulators for a real DAQ (Pi + MPU6050 + MLX90640) and add vision depth.

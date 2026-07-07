@@ -1,0 +1,18 @@
+# Argus Panoptes dashboard theme (dark industrial).
+# Ensures every native Streamlit widget (inputs, buttons, multiselect chips,
+# the top header) renders dark by default so nothing is white-on-white. The
+# palette mirrors dashviz/theme.py (COLORS) for a consistent look.
+
+[theme]
+base = "dark"
+primaryColor = "#2dd4bf"          # teal-400 accent (COLORS.accent)
+backgroundColor = "#0f172a"       # deep slate app background (COLORS.bg)
+secondaryBackgroundColor = "#1e293b"  # card / widget surface (COLORS.surface)
+textColor = "#f1f5f9"             # primary text (COLORS.text)
+font = "sans serif"
+
+[server]
+headless = true
+
+[browser]
+gatherUsageStats = false

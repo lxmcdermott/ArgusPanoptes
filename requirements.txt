@@ -44,6 +44,14 @@ pytest>=7.4
 # XGBoost baseline via joblib/xgboost (ml extra). A typical serving install is:
 #     pip install -e ".[ml,dl,app]"
 #
-# Still deferred to later days of the execution plan:
-#   Dashboard: streamlit, plotly                     (Day 5)
+# Operator dashboard (Day 5) is the "dashboard" extra:
+#     pip install -e ".[dashboard]"
+# which pulls in:
+#   streamlit>=1.36, plotly>=5.22, httpx>=0.27       (see pyproject.toml [dashboard])
+# The dashboard (dashboard.py + the dashviz/ package) runs standalone against an
+# in-process StreamingPerceptor, or over HTTP against the FastAPI service. A full
+# demo install (baseline + DL variants + API + dashboard) is:
+#     pip install -e ".[ml,dl,app,dashboard]"
+# then launch with:
+#     streamlit run dashboard.py
 # ---------------------------------------------------------------------------

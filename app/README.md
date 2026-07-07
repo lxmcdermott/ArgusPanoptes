@@ -107,7 +107,7 @@ recent = d.to_table(filter=ds.field("model") == "1dcnn_normnone").to_pandas()
 
 ## Planned (Day 5)
 
-- Streamlit dashboard: live waveform / FFT / STFT plots, KPI gauges
+- ✅ Streamlit dashboard: live waveform / FFT / STFT plots, KPI gauges
   (wear %, RUL, cycle factor, anomaly score), alerts, historical explorer, and a
   PyTorch↔ONNX model toggle.
 - Mock PLC / OPC-UA tags and ML feature store.
