@@ -115,6 +115,7 @@ class SignalProcessor:
         self.pre = self.config.preprocess
         self.freq = self.config.frequency
         self.stft_cfg = self.config.stft
+        self.dl = self.config.dl
 
     # ------------------------------------------------------------------ #
     # Preprocessing
@@ -168,8 +169,8 @@ class SignalProcessor:
         x = self._normalize(x)
         return np.ascontiguousarray(x, dtype=np.float64)
 
-    def _normalize(self, x: FloatArray) -> FloatArray:
-        method = self.pre.normalize
+    def _normalize(self, x: FloatArray, method: str | None = None) -> FloatArray:
+        method = self.pre.normalize if method is None else method
         if method == "none" or x.size == 0:
             return x
         if method == "zscore":
@@ -401,6 +402,73 @@ class SignalProcessor:
             "times": times.astype(np.float32),
             "power": power.astype(np.float32),
         }
+
+    # ------------------------------------------------------------------ #
+    # Deep-learning input preparation (Day-3 CNN / fusion paths)
+    # ------------------------------------------------------------------ #
+    def get_normalized_waveform(self, x: npt.ArrayLike, fs: float) -> np.ndarray:
+        """Return a model-ready 1-D ``float32`` waveform for the 1D-CNN path.
+
+        Runs the standard :meth:`preprocess` (detrend -> zero-phase band-pass ->
+        the configured ``preprocess.normalize``) and then applies the DL
+        normalization ``dl.normalize_for_dl`` (default ``"zscore"``) on top, so
+        every chunk is amplitude scale-invariant. With the default
+        ``preprocess.normalize="none"`` this is exactly *detrend + band-pass +
+        z-score*.
+
+        Rationale: the tabular path keeps absolute amplitude (a first-class wear
+        feature), but per-chunk scale invariance lets the 1D-CNN focus on the
+        *shape* of the tooth-strike transients and generalize across operating
+        points / gains. Returns ``float32`` for compact tensor storage.
+
+        Parameters
+        ----------
+        x:
+            Raw 1-D signal.
+        fs:
+            Sample rate in Hz (> 0).
+
+        Returns
+        -------
+        np.ndarray
+            1-D ``float32`` array, same length as the (raveled) input.
+        """
+        xp = self.preprocess(x, fs)
+        xn = self._normalize(xp, method=self.dl.normalize_for_dl)
+        return np.ascontiguousarray(xn, dtype=np.float32)
+
+    def compute_spectrogram(self, x: npt.ArrayLike, fs: float) -> np.ndarray:
+        """Return a log-power spectrogram for the spectrogram-CNN path.
+
+        Convenience wrapper that (1) normalizes the waveform exactly like
+        :meth:`get_normalized_waveform` (detrend -> band-pass ->
+        ``dl.normalize_for_dl``) for a consistent, scale-invariant CNN front-end
+        and (2) computes the STFT power via :meth:`compute_stft` (dB when
+        ``stft.log_scale`` is set).
+
+        Shape convention
+        ----------------
+        The returned array is **2-D ``(n_freq, n_time)``** ``float32`` -
+        frequency bins along axis 0 (``nperseg // 2 + 1`` rows), time frames
+        along axis 1. This matches ``compute_stft(...)["power"]`` and is the
+        natural ``(H, W)`` layout for a single-channel 2-D conv input (add a
+        channel dim to get ``(1, n_freq, n_time)``).
+
+        Parameters
+        ----------
+        x:
+            Raw 1-D signal.
+        fs:
+            Sample rate in Hz (> 0).
+
+        Returns
+        -------
+        np.ndarray
+            ``(n_freq, n_time)`` ``float32`` log-power (or linear-power)
+            spectrogram.
+        """
+        xn = self.get_normalized_waveform(x, fs)
+        return self.compute_stft(xn, fs)["power"]
 
     # ------------------------------------------------------------------ #
     # Full pipeline

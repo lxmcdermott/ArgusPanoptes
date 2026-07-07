@@ -1,0 +1,83 @@
+{
+  "configs": [
+    {
+      "kind": "clean",
+      "level": 0.0,
+      "label": "clean",
+      "xgb_wear_mae": 0.08379111687289625,
+      "dl_wear_mae": 0.23664119317006482,
+      "xgb_health_f1": 0.6752055566860901,
+      "dl_health_f1": 0.27135841565981667
+    },
+    {
+      "kind": "gaussian",
+      "level": 0.1,
+      "label": "gaussian sd=0.1*rms",
+      "xgb_wear_mae": 0.09313471007179192,
+      "dl_wear_mae": 0.24929337230378587,
+      "xgb_health_f1": 0.632465785133532,
+      "dl_health_f1": 0.17612866245962383
+    },
+    {
+      "kind": "gaussian",
+      "level": 0.25,
+      "label": "gaussian sd=0.25*rms",
+      "xgb_wear_mae": 0.11423256243393103,
+      "dl_wear_mae": 0.4444848805102729,
+      "xgb_health_f1": 0.5951200242976654,
+      "dl_health_f1": 0.08423132183908046
+    },
+    {
+      "kind": "gaussian",
+      "level": 0.5,
+      "label": "gaussian sd=0.5*rms",
+      "xgb_wear_mae": 0.13229481035547205,
+      "dl_wear_mae": 0.7422769524364667,
+      "xgb_health_f1": 0.575545179262148,
+      "dl_health_f1": 0.07746478873239436
+    },
+    {
+      "kind": "drift",
+      "level": 0.5,
+      "label": "drift 0.5*rms",
+      "xgb_wear_mae": 0.08382982492394199,
+      "dl_wear_mae": 0.23664119048785578,
+      "xgb_health_f1": 0.6752055566860901,
+      "dl_health_f1": 0.27135841565981667
+    },
+    {
+      "kind": "drift",
+      "level": 1.0,
+      "label": "drift 1.0*rms",
+      "xgb_wear_mae": 0.08381982962237745,
+      "dl_wear_mae": 0.23664117538801246,
+      "xgb_health_f1": 0.6752055566860901,
+      "dl_health_f1": 0.27135841565981667
+    },
+    {
+      "kind": "quantization",
+      "level": 8,
+      "label": "quantize 8-bit",
+      "xgb_wear_mae": 0.0843184688104335,
+      "dl_wear_mae": 0.23660282923650158,
+      "xgb_health_f1": 0.6674592283905728,
+      "dl_health_f1": 0.27135841565981667
+    },
+    {
+      "kind": "quantization",
+      "level": 4,
+      "label": "quantize 4-bit",
+      "xgb_wear_mae": 0.09171428718080714,
+      "dl_wear_mae": 0.23510828198636272,
+      "xgb_health_f1": 0.6187927353778038,
+      "dl_health_f1": 0.19944312393887947
+    }
+  ],
+  "class_names": [
+    "critical",
+    "healthy",
+    "monitor",
+    "warning"
+  ],
+  "n_test": 300
+}

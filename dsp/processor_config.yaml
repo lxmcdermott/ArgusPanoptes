@@ -53,10 +53,24 @@ frequency:
 
 # -----------------------------------------------------------------------------
 # Time-frequency (STFT) spectrogram - not computed on the scalar-feature path
-# by default; enabled for the Day-3 spectrogram-CNN models.
+# by default; enabled for the Day-3 spectrogram-CNN models via
+# SignalProcessor.compute_spectrogram(). Defaults are tuned for the CNN input:
+# nperseg=1024 @ 40.96 kHz -> 513 frequency bins (~20 Hz resolution) and, with
+# 75% overlap, a dense-enough time axis for a 2-D conv stack.
 # -----------------------------------------------------------------------------
 stft:
-  nperseg: 1024            # STFT window length (samples)
-  overlap: 0.75            # fractional overlap between STFT windows
+  nperseg: 1024            # STFT window length (samples) -> 513 freq bins @ nperseg//2+1
+  overlap: 0.75            # fractional overlap between STFT windows (dense time axis for CNN)
   window: "hann"
-  log_scale: true          # return 10*log10(power + eps) instead of linear power
+  log_scale: true          # return 10*log10(power + eps) dB (compresses dynamic range for CNN)
+
+# -----------------------------------------------------------------------------
+# Deep-learning input preparation (Day-3 1D-CNN / spectrogram-CNN / fusion).
+# Consumed only by SignalProcessor.get_normalized_waveform / compute_spectrogram;
+# the scalar-feature / Parquet path and its schema are unaffected.
+# -----------------------------------------------------------------------------
+dl:
+  # Per-chunk amplitude normalization for the DL paths. The tabular path keeps
+  # preprocess.normalize="none" (absolute amplitude is a wear feature), but CNNs
+  # generalize better on scale-invariant inputs, so "zscore" is recommended here.
+  normalize_for_dl: "zscore"   # "none" | "zscore" | "peak" | "rms"

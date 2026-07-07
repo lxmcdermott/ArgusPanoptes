@@ -25,6 +25,7 @@ from dsp.config import (
     PreprocessConfig,
     FrequencyConfig,
     StftConfig,
+    DlConfig,
     load_processor_config,
 )
 from dsp.signal_processor import (
@@ -42,6 +43,7 @@ __all__ = [
     "PreprocessConfig",
     "FrequencyConfig",
     "StftConfig",
+    "DlConfig",
     "TIME_DOMAIN_FEATURES",
     "FREQUENCY_DOMAIN_FEATURES",
     "__version__",

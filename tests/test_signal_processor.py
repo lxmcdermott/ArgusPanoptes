@@ -159,6 +159,33 @@ def test_stft_shapes(proc, vib):
 
 
 # --------------------------------------------------------------------------- #
+# DL input-preparation convenience methods (Day 3)
+# --------------------------------------------------------------------------- #
+def test_get_normalized_waveform_zscore(proc, vib):
+    """Default DL normalization is z-score: float32, zero-mean, unit-std."""
+    _, accel, meta = vib.generate(duration_s=1.0, wear=0.4, seed=7)
+    w = proc.get_normalized_waveform(accel, fs=meta["fs_hz"])
+    assert w.dtype == np.float32
+    assert w.shape == accel.shape
+    assert abs(float(np.mean(w))) < 1e-3
+    assert float(np.std(w)) == pytest.approx(1.0, abs=0.05)
+
+
+def test_compute_spectrogram_shape(proc, vib):
+    """Spectrogram is 2-D (n_freq, n_time) float32 with n_freq = nperseg//2 + 1."""
+    _, accel, meta = vib.generate(duration_s=1.0, wear=0.4, seed=7)
+    spec = proc.compute_spectrogram(accel, fs=meta["fs_hz"])
+    assert spec.dtype == np.float32
+    assert spec.ndim == 2
+    assert spec.shape[0] == proc.stft_cfg.nperseg // 2 + 1
+    assert np.all(np.isfinite(spec))
+
+
+def test_dl_config_normalize_default(proc):
+    assert proc.dl.normalize_for_dl == "zscore"
+
+
+# --------------------------------------------------------------------------- #
 # Full pipeline / process / process_batch
 # --------------------------------------------------------------------------- #
 def test_process_returns_expected_structure(proc, vib):
@@ -247,6 +274,29 @@ def test_n_harmonics_limits_harmonic_bands(proc, vib):
     assert f3["fd_tpf_harmonic3_energy"] == 0.0
     assert f3["fd_tpf_harmonic2_energy"] > 0.0
     assert f3["fd_tpf_harmonic_energy_total"] < f2["fd_tpf_harmonic_energy_total"]
+
+
+def test_n_harmonics_one_graceful(vib):
+    """Low ``n_harmonics=1`` must zero out 2x/3x bands without NaNs/errors.
+
+    Regression guard for the harmonic-energy fix (commit 5dfd041): ``h2``/``h3``
+    are only band-integrated when ``n_harmonics >= 2 / >= 3`` and default to 0.0
+    otherwise. The fundamental band must still carry positive energy and the
+    harmonic total must collapse to the fundamental alone.
+    """
+    sp1 = SignalProcessor(load_processor_config(overrides={"frequency": {"n_harmonics": 1}}))
+    _, accel, meta = vib.generate(duration_s=3.0, wear=0.5, seed=31)
+    fs = meta["fs_hz"]
+    tpf = meta["tooth_pass_freq_hz"]
+    x = sp1.preprocess(accel, fs=fs)
+    f = sp1.extract_frequency_domain_features(x, fs=fs, tpf_hz=tpf)
+    assert all(np.isfinite(v) for v in f.values())
+    assert f["fd_tpf_harmonic2_energy"] == 0.0
+    assert f["fd_tpf_harmonic3_energy"] == 0.0
+    assert f["fd_tpf_band_energy"] > 0.0
+    assert f["fd_tpf_harmonic_energy_total"] == pytest.approx(f["fd_tpf_band_energy"])
+    # With no harmonics above the fundamental, the harmonic-to-fundamental ratio is 0.
+    assert f["fd_harmonic_to_fundamental_ratio"] == 0.0
 
 
 def test_invalid_fs_raises(proc):

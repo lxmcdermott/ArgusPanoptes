@@ -37,6 +37,7 @@ __all__ = [
     "BandpassConfig",
     "FrequencyConfig",
     "StftConfig",
+    "DlConfig",
     "load_processor_config",
     "DEFAULT_PROCESSOR_SPECS_PATH",
 ]
@@ -123,6 +124,30 @@ class StftConfig(_Strict):
     log_scale: bool = True
 
 
+class DlConfig(_Strict):
+    """Deep-learning input-preparation options (Day-3 CNN / fusion paths).
+
+    These are consumed only by the convenience methods
+    :meth:`SignalProcessor.get_normalized_waveform` and
+    :meth:`SignalProcessor.compute_spectrogram`; the scalar-feature / Parquet
+    path is untouched, so enabling them never changes the tabular schema.
+    """
+
+    #: Per-chunk amplitude normalization for the DL paths. Unlike the tabular
+    #: path (where absolute amplitude is a wear feature, hence
+    #: ``preprocess.normalize="none"``), CNNs generalize better on
+    #: scale-invariant inputs, so ``"zscore"`` is the recommended default.
+    normalize_for_dl: str = "zscore"
+
+    @field_validator("normalize_for_dl")
+    @classmethod
+    def _check_normalize_for_dl(cls, v: str) -> str:
+        allowed = {"none", "zscore", "peak", "rms"}
+        if v not in allowed:
+            raise ValueError(f"dl.normalize_for_dl must be one of {allowed}, got {v!r}")
+        return v
+
+
 class ProcessorConfig(_Strict):
     """Top-level, fully-typed configuration for the DSP module."""
 
@@ -130,6 +155,7 @@ class ProcessorConfig(_Strict):
     preprocess: PreprocessConfig = Field(default_factory=PreprocessConfig)
     frequency: FrequencyConfig = Field(default_factory=FrequencyConfig)
     stft: StftConfig = Field(default_factory=StftConfig)
+    dl: DlConfig = Field(default_factory=DlConfig)
 
 
 # ---------------------------------------------------------------------------

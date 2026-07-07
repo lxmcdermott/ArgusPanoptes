@@ -29,7 +29,13 @@ pytest>=7.4
 # which pulls in:
 #   scikit-learn>=1.5, xgboost>=2.1, joblib>=1.4   (see pyproject.toml [ml])
 #
+# Deep-learning + ONNX edge export (Day 3) is the "dl" extra:
+#     pip install -e ".[dl]"
+# which pulls in:
+#   torch>=2.2, onnx>=1.16, onnxruntime>=1.18      (see pyproject.toml [dl])
+# The DL training script also uses the ml extra for its XGBoost comparison:
+#     pip install -e ".[ml,dl]"
+#
 # Still deferred to later days of the execution plan:
-#   DL/export: torch, onnx, onnxruntime   (Day 3)
 #   App:       fastapi, uvicorn, streamlit, plotly   (Days 4-5)
 # ---------------------------------------------------------------------------

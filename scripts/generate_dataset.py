@@ -309,6 +309,38 @@ def print_summary(manifest_rows: list[dict[str, Any]], out_dir: Path, records_di
 # --------------------------------------------------------------------------- #
 # Main
 # --------------------------------------------------------------------------- #
+def _write_dl_config(
+    dl_output_dir: Path, processor: "Any", normalize_for_dl: str, target_len: int | None
+) -> None:
+    """Persist the DL input recipe so the DataLoader reproduces identical inputs.
+
+    The spectrograms / normalized waveforms are computed **on-the-fly** by
+    ``models/train_dl.py`` (leveraging the raw ``float32`` waveform columns in
+    ``records/``) to avoid multi-hundred-MB spectrogram storage. This JSON simply
+    records the exact STFT / normalization config used so training is reproducible.
+    """
+    import json
+
+    dl_output_dir.mkdir(parents=True, exist_ok=True)
+    recipe = {
+        "processor_version": processor.version,
+        "normalize_for_dl": normalize_for_dl,
+        "target_len": target_len,
+        "stft": {
+            "nperseg": processor.stft_cfg.nperseg,
+            "overlap": processor.stft_cfg.overlap,
+            "window": processor.stft_cfg.window,
+            "log_scale": processor.stft_cfg.log_scale,
+        },
+        "note": "Spectrograms/normalized waveforms are computed on-the-fly in the "
+        "DataLoader from records/ waveforms; nothing extra is stored.",
+    }
+    path = dl_output_dir / "dl_config.json"
+    with path.open("w", encoding="utf-8") as fh:
+        json.dump(recipe, fh, indent=2)
+    logger.info("Wrote DL input recipe -> %s", path)
+
+
 def generate(
     num_samples: int,
     output_dir: Path,
@@ -318,6 +350,9 @@ def generate(
     config_path: Path | None,
     extract_features: bool = False,
     processor_config_path: Path | None = None,
+    compute_spectrogram: bool = False,
+    normalize_for_dl: str = "zscore",
+    dl_output_dir: Path | None = None,
 ) -> None:
     cfg = load_config(config_path)
     vib = SawVibrationSimulator(cfg)
@@ -326,10 +361,15 @@ def generate(
     processor = None
     if extract_features:
         from dsp import SignalProcessor  # local import: keeps default path dsp-free
+        from dsp.config import load_processor_config
 
-        processor = SignalProcessor(
-            str(processor_config_path) if processor_config_path else None
+        # Override the DL normalization (used only by the DL convenience methods /
+        # DataLoader) without touching the tabular feature path or its schema.
+        proc_cfg = load_processor_config(
+            str(processor_config_path) if processor_config_path else None,
+            overrides={"dl": {"normalize_for_dl": normalize_for_dl}},
         )
+        processor = SignalProcessor(proc_cfg)
         logger.info("DSP feature extraction ENABLED (processor v%s)", processor.version)
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -364,6 +404,17 @@ def generate(
     elapsed = time.perf_counter() - t0
     logger.info("Done in %.1fs (%.1f ms/sample)", elapsed, 1e3 * elapsed / max(1, num_samples))
     print_summary(manifest_rows, output_dir, records_dir)
+
+    # --- DL-readiness recipe (opt-in; nothing large is stored) ---
+    if compute_spectrogram:
+        if processor is None:
+            from dsp import SignalProcessor
+            from dsp.config import load_processor_config
+
+            processor = SignalProcessor(
+                load_processor_config(overrides={"dl": {"normalize_for_dl": normalize_for_dl}})
+            )
+        _write_dl_config(dl_output_dir or output_dir, processor, normalize_for_dl, target_len=None)
 
 
 def main() -> int:
@@ -400,6 +451,27 @@ def main() -> int:
         default=None,
         help="Optional path to an alternative dsp/processor_config.yaml (with --extract-features).",
     )
+    parser.add_argument(
+        "--compute-spectrogram",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Mark the dataset DL-ready and write dl_config.json (STFT + normalize "
+        "recipe). Spectrograms are computed on-the-fly by models/train_dl.py, so "
+        "nothing large is stored.",
+    )
+    parser.add_argument(
+        "--normalize-for-dl",
+        type=str,
+        default="zscore",
+        choices=["none", "zscore", "peak", "rms"],
+        help="Per-chunk normalization recipe recorded for the DL paths (default zscore).",
+    )
+    parser.add_argument(
+        "--dl-output-dir",
+        type=Path,
+        default=None,
+        help="Where to write dl_config.json (defaults to --output-dir).",
+    )
     args = parser.parse_args()
 
     if args.num_samples <= 0:
@@ -414,6 +486,9 @@ def main() -> int:
         config_path=args.config,
         extract_features=args.extract_features,
         processor_config_path=args.processor_config,
+        compute_spectrogram=args.compute_spectrogram,
+        normalize_for_dl=args.normalize_for_dl,
+        dl_output_dir=args.dl_output_dir,
     )
     return 0
 

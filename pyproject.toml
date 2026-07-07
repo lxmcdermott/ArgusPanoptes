@@ -37,6 +37,15 @@ ml = [
     "joblib>=1.4",
     # shap>=0.46  # optional for later interpretability
 ]
+# Deep-learning + edge-export path (Day 3): 1D-CNN, spectrogram CNN, fusion,
+# ONNX export + ONNX Runtime benchmarks. Kept separate so the core / ml install
+# never pulls in torch. The dl extra also assumes the ml extra for the baseline
+# comparison in models/train_dl.py.
+dl = [
+    "torch>=2.2",
+    "onnx>=1.16",
+    "onnxruntime>=1.18",
+]
 
 [tool.setuptools]
 packages = ["sensors", "dsp", "models", "app"]

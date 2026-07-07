@@ -33,6 +33,26 @@ Day-3 deep-learning path).
 Config is YAML-driven (`dsp/processor_config.yaml`) and validated by
 `pydantic` models in `dsp/config.py`, mirroring `sensors/sensor_specs.yaml`.
 
+## Deep-learning input methods (Day 3)
+
+Two convenience methods prepare model-ready inputs for the DL path without
+touching the scalar-feature / Parquet schema:
+
+- **`get_normalized_waveform(x, fs)`** — detrend → band-pass → the configured
+  `dl.normalize_for_dl` normalization (default `"zscore"`), returned as 1-D
+  `float32`. The tabular path keeps absolute amplitude (a wear feature), but the
+  1D-CNN generalizes better on scale-invariant, per-chunk-normalized input.
+- **`compute_spectrogram(x, fs)`** — the same normalization followed by
+  `compute_stft`, returning just the **`(n_freq, n_time)` `float32`** log-power
+  spectrogram (`n_freq = nperseg // 2 + 1`), i.e. the natural single-channel
+  `(H, W)` input for the spectrogram-CNN.
+
+Both are driven by the new `dl:` section of `processor_config.yaml`
+(`normalize_for_dl`) and the CNN-tuned `stft:` defaults. They are consumed by
+`models/dl_data.py` (on-the-fly, no extra storage) and reused for the ONNX edge
+path. The scalar `process()` / `process_batch()` / Parquet feature schema are
+unchanged.
+
 ## Usage
 
 ```python
@@ -69,5 +89,6 @@ df = sp.process_batch(list_of_waveforms, fs=40960.0, metadatas=list_of_meta,
 - **`models/baseline.py`** consumes those feature columns for XGBoost baselines
   and time-vs-frequency ablations (feature groups selected by the `td_`/`fd_`
   prefixes).
-- **Day 3** will use `compute_stft` for the spectrogram-CNN and the
-  amplitude-normalized `preprocess` output for the 1D-CNN.
+- **`models/dl_data.py` (Day 3)** uses `get_normalized_waveform` for the 1D-CNN
+  / fusion branches and `compute_spectrogram` for the spectrogram-CNN, computed
+  on-the-fly from the raw `records/` waveforms.
