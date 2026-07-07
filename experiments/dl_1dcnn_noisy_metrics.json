@@ -1,0 +1,80 @@
+{
+  "model": "1dcnn",
+  "artifact_name": "dl_1dcnn_noisy",
+  "n_params": 84807,
+  "seed": 42,
+  "train_noise_sd": 0.15,
+  "normalize_for_dl": "zscore",
+  "early_stopping_patience": 8,
+  "epochs_run": 9,
+  "train_time_s": 64.32781530008651,
+  "n_train": 1600,
+  "n_val": 400,
+  "n_test": 500,
+  "input_len": 16384,
+  "input_shape": null,
+  "class_names": [
+    "critical",
+    "healthy",
+    "monitor",
+    "warning"
+  ],
+  "dl_metrics": {
+    "regression": {
+      "wear_level": {
+        "mae": 0.2628110945224762,
+        "rmse": 0.3103303909301758,
+        "r2": -0.16157200819945183
+      },
+      "cycle_time_factor": {
+        "mae": 0.18457858264446259,
+        "rmse": 0.23356866836547852,
+        "r2": -2.0431325877020416
+      },
+      "quality_score": {
+        "mae": 0.18296946585178375,
+        "rmse": 0.2243632823228836,
+        "r2": -1.4278537875225288
+      }
+    },
+    "classification": {
+      "accuracy": 0.298,
+      "macro_f1": 0.16477663087410566,
+      "per_class_f1": {
+        "critical": 0.0,
+        "healthy": 0.182741116751269,
+        "monitor": 0.45104895104895104,
+        "warning": 0.02531645569620253
+      }
+    }
+  },
+  "baseline_metrics": null,
+  "history": {
+    "train_loss": [
+      0.7926708471775055,
+      0.725940215587616,
+      0.7196623778343201,
+      0.7087510991096496,
+      0.7058111941814422,
+      0.7010398936271668,
+      0.6988883876800537,
+      0.7007068073749543,
+      0.6955891287326813
+    ],
+    "val_loss": [
+      0.7633309268951416,
+      0.9996752691268921,
+      0.7635506153106689,
+      0.857672700881958,
+      0.786350486278534,
+      0.8775847816467285,
+      1.156156678199768,
+      0.8233675813674927,
+      1.0687527418136598
+    ]
+  },
+  "artifacts": {
+    "checkpoint": "C:\\Users\\logan\\Projects\\ArgusPanoptes\\experiments\\models\\dl_1dcnn_noisy.pt",
+    "onnx": "C:\\Users\\logan\\Projects\\ArgusPanoptes\\experiments\\models\\dl_1dcnn_noisy.onnx"
+  }
+}

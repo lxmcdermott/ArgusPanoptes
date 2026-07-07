@@ -1,0 +1,84 @@
+{
+  "model": "fusion",
+  "artifact_name": "dl_fusion_noisy01",
+  "n_params": 98855,
+  "seed": 42,
+  "train_noise_sd": 0.1,
+  "normalize_for_dl": "zscore",
+  "early_stopping_patience": 8,
+  "epochs_run": 11,
+  "train_time_s": 94.66856630006805,
+  "n_train": 1600,
+  "n_val": 400,
+  "n_test": 500,
+  "input_len": 16384,
+  "input_shape": null,
+  "class_names": [
+    "critical",
+    "healthy",
+    "monitor",
+    "warning"
+  ],
+  "dl_metrics": {
+    "regression": {
+      "wear_level": {
+        "mae": 0.22687332332134247,
+        "rmse": 0.2666455805301666,
+        "r2": 0.14243639590734136
+      },
+      "cycle_time_factor": {
+        "mae": 0.1197604238986969,
+        "rmse": 0.1459457278251648,
+        "r2": -0.18815873217854895
+      },
+      "quality_score": {
+        "mae": 0.12375076115131378,
+        "rmse": 0.1445319503545761,
+        "r2": -0.007503769823309581
+      }
+    },
+    "classification": {
+      "accuracy": 0.388,
+      "macro_f1": 0.32861771903156883,
+      "per_class_f1": {
+        "critical": 0.1219512195121951,
+        "healthy": 0.35922330097087385,
+        "monitor": 0.46838407494145196,
+        "warning": 0.3649122807017544
+      }
+    }
+  },
+  "baseline_metrics": null,
+  "history": {
+    "train_loss": [
+      0.7786993265151978,
+      0.7134072947502136,
+      0.702928043603897,
+      0.6921758353710175,
+      0.6793158054351807,
+      0.6801630985736847,
+      0.6794144248962403,
+      0.6696212875843048,
+      0.6697961163520812,
+      0.6660745668411255,
+      0.6604214334487915
+    ],
+    "val_loss": [
+      0.716199381351471,
+      1.045154438018799,
+      0.6784000492095947,
+      0.8359807538986206,
+      0.7103047752380371,
+      0.8064414501190186,
+      0.7240913009643555,
+      0.8417434287071228,
+      0.7391291546821595,
+      0.8590010738372803,
+      1.00845552444458
+    ]
+  },
+  "artifacts": {
+    "checkpoint": "C:\\Users\\logan\\Projects\\ArgusPanoptes\\experiments\\models\\dl_fusion_noisy01.pt",
+    "onnx": "C:\\Users\\logan\\Projects\\ArgusPanoptes\\experiments\\models\\dl_fusion_noisy01.onnx"
+  }
+}

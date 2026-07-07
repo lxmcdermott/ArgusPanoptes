@@ -1,0 +1,85 @@
+{
+  "configs": [
+    {
+      "kind": "clean",
+      "level": 0.0,
+      "label": "clean",
+      "xgb_wear_mae": 0.08379111687289625,
+      "dl_wear_mae": 0.23543316321945554,
+      "xgb_health_f1": 0.6752055566860901,
+      "dl_health_f1": 0.24783266471748147
+    },
+    {
+      "kind": "gaussian",
+      "level": 0.1,
+      "label": "gaussian sd=0.1*rms",
+      "xgb_wear_mae": 0.09313471007179192,
+      "dl_wear_mae": 0.24657148844105176,
+      "xgb_health_f1": 0.632465785133532,
+      "dl_health_f1": 0.16797121873240156
+    },
+    {
+      "kind": "gaussian",
+      "level": 0.25,
+      "label": "gaussian sd=0.25*rms",
+      "xgb_wear_mae": 0.11423256243393103,
+      "dl_wear_mae": 0.3152242845983416,
+      "xgb_health_f1": 0.5951200242976654,
+      "dl_health_f1": 0.12236990595611286
+    },
+    {
+      "kind": "gaussian",
+      "level": 0.5,
+      "label": "gaussian sd=0.5*rms",
+      "xgb_wear_mae": 0.13229481035547205,
+      "dl_wear_mae": 0.3802379322462391,
+      "xgb_health_f1": 0.575545179262148,
+      "dl_health_f1": 0.07879656160458452
+    },
+    {
+      "kind": "drift",
+      "level": 0.5,
+      "label": "drift 0.5*rms",
+      "xgb_wear_mae": 0.08382982492394199,
+      "dl_wear_mae": 0.23543315676228568,
+      "xgb_health_f1": 0.6752055566860901,
+      "dl_health_f1": 0.24783266471748147
+    },
+    {
+      "kind": "drift",
+      "level": 1.0,
+      "label": "drift 1.0*rms",
+      "xgb_wear_mae": 0.08381982962237745,
+      "dl_wear_mae": 0.23543315457678204,
+      "xgb_health_f1": 0.6752055566860901,
+      "dl_health_f1": 0.24783266471748147
+    },
+    {
+      "kind": "quantization",
+      "level": 8,
+      "label": "quantize 8-bit",
+      "xgb_wear_mae": 0.0843184688104335,
+      "dl_wear_mae": 0.23539613969501222,
+      "xgb_health_f1": 0.6674592283905728,
+      "dl_health_f1": 0.2503932503932504
+    },
+    {
+      "kind": "quantization",
+      "level": 4,
+      "label": "quantize 4-bit",
+      "xgb_wear_mae": 0.09171428718080714,
+      "dl_wear_mae": 0.2352430785715202,
+      "xgb_health_f1": 0.6187927353778038,
+      "dl_health_f1": 0.17824858757062148
+    }
+  ],
+  "class_names": [
+    "critical",
+    "healthy",
+    "monitor",
+    "warning"
+  ],
+  "n_test": 300,
+  "dl_onnx": "experiments\\models\\dl_1dcnn_noisy01.onnx",
+  "dl_label": "1D-CNN-noisy01"
+}

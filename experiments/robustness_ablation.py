@@ -108,7 +108,15 @@ def _macro_f1(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> float:
 # --------------------------------------------------------------------------- #
 # Main
 # --------------------------------------------------------------------------- #
-def run(data_dir: Path, out_json: Path, plots_dir: Path, seed: int, max_samples: int | None) -> dict:
+def run(
+    data_dir: Path,
+    out_json: Path,
+    plots_dir: Path,
+    seed: int,
+    max_samples: int | None,
+    dl_onnx: Path | None = None,
+    dl_label: str = "1D-CNN",
+) -> dict:
     import joblib
     import pandas as pd  # noqa: F401
 
@@ -141,7 +149,8 @@ def run(data_dir: Path, out_json: Path, plots_dir: Path, seed: int, max_samples:
     n_classes = len(class_names)
     cls_to_idx = {c: i for i, c in enumerate(class_names)}
 
-    perc = ONNXPerceptor(root / "experiments" / "models" / "dl_1dcnn.onnx")
+    onnx_path = dl_onnx or (root / "experiments" / "models" / "dl_1dcnn.onnx")
+    perc = ONNXPerceptor(onnx_path)
     target_len = 16384
 
     # Ground truth for the test rows.
@@ -152,10 +161,15 @@ def run(data_dir: Path, out_json: Path, plots_dir: Path, seed: int, max_samples:
     # vibration noise; only vib_* columns are recomputed per corruption).
     X_base = manifest.iloc[test_idx][all_cols].reset_index(drop=True).copy()
 
-    results: dict[str, Any] = {"configs": [], "class_names": class_names,
-                               "n_test": int(len(test_idx))}
+    results: dict[str, Any] = {
+        "configs": [],
+        "class_names": class_names,
+        "n_test": int(len(test_idx)),
+        "dl_onnx": str(onnx_path),
+        "dl_label": dl_label,
+    }
     print("=" * 84)
-    print("ARGUS PANOPTES - noise-robustness ablation (XGBoost DSP vs 1D-CNN)")
+    print(f"ARGUS PANOPTES - noise-robustness ablation (XGBoost DSP vs {dl_label})")
     print(f"test rows: {len(test_idx)}   fs: {fs:.0f} Hz")
     print("=" * 84)
     print(f"{'corruption':22s} {'xgb wear MAE':>13s} {'dl wear MAE':>13s} "
@@ -212,7 +226,7 @@ def _plot(results: dict, plots_dir: Path) -> None:
     x = np.arange(len(labels))
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
     ax1.bar(x - 0.2, [c["xgb_wear_mae"] for c in results["configs"]], 0.4, label="XGBoost", color="#2b7bba")
-    ax1.bar(x + 0.2, [c["dl_wear_mae"] for c in results["configs"]], 0.4, label="1D-CNN", color="#e07b39")
+    ax1.bar(x + 0.2, [c["dl_wear_mae"] for c in results["configs"]], 0.4, label=results.get("dl_label", "DL"), color="#e07b39")
     ax1.set(ylabel="wear MAE (lower=better)", title="Wear MAE vs corruption")
     ax1.set_xticks(x)
     ax1.set_xticklabels(labels, rotation=40, ha="right", fontsize=8)
@@ -220,7 +234,7 @@ def _plot(results: dict, plots_dir: Path) -> None:
     ax1.grid(alpha=0.3, axis="y")
 
     ax2.bar(x - 0.2, [c["xgb_health_f1"] for c in results["configs"]], 0.4, label="XGBoost", color="#2b7bba")
-    ax2.bar(x + 0.2, [c["dl_health_f1"] for c in results["configs"]], 0.4, label="1D-CNN", color="#e07b39")
+    ax2.bar(x + 0.2, [c["dl_health_f1"] for c in results["configs"]], 0.4, label=results.get("dl_label", "DL"), color="#e07b39")
     ax2.set(ylabel="health macro-F1 (higher=better)", title="Health macro-F1 vs corruption")
     ax2.set_xticks(x)
     ax2.set_xticklabels(labels, rotation=40, ha="right", fontsize=8)
@@ -244,8 +258,20 @@ def main() -> int:
     parser.add_argument("--plots-dir", type=Path, default=root / "experiments" / "plots")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--max-samples", type=int, default=None)
+    parser.add_argument(
+        "--dl-onnx",
+        type=Path,
+        default=None,
+        help="ONNX artifact for the DL path (default: experiments/models/dl_1dcnn.onnx).",
+    )
+    parser.add_argument(
+        "--dl-label",
+        type=str,
+        default="1D-CNN",
+        help="Display label for the DL model in tables/plots.",
+    )
     args = parser.parse_args()
-    run(args.data_dir, args.out, args.plots_dir, args.seed, args.max_samples)
+    run(args.data_dir, args.out, args.plots_dir, args.seed, args.max_samples, args.dl_onnx, args.dl_label)
     return 0
 
 

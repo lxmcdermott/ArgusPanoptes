@@ -82,6 +82,22 @@ def test_waveform_accepts_2d_input():
     assert reg.shape == (3, 3)
 
 
+def test_training_noise_augmentation_changes_waveform():
+    """Train loader noise_sd_ratio perturbs waveforms; val loader does not."""
+    from models.dl_data import ArgusDLDataset
+
+    wf = np.ones((4, 8), dtype=np.float32)
+    y_reg = np.zeros((4, 3), dtype=np.float32)
+    y_clf = np.zeros(4, dtype=np.int64)
+    noisy = ArgusDLDataset(wf, None, None, y_reg, y_clf, "waveform", noise_sd_ratio=0.5)
+    clean = ArgusDLDataset(wf, None, None, y_reg, y_clf, "waveform", noise_sd_ratio=0.0)
+    np.random.seed(0)
+    item_noisy = noisy[0]["waveform"].numpy()
+    item_clean = clean[0]["waveform"].numpy()
+    assert not np.allclose(item_noisy, item_clean)
+    assert item_clean.shape == (1, 8)
+
+
 # --------------------------------------------------------------------------- #
 # Train / evaluate
 # --------------------------------------------------------------------------- #

@@ -1,83 +1,54 @@
 {
-  "configs": [
-    {
-      "kind": "clean",
-      "level": 0.0,
-      "label": "clean",
-      "xgb_wear_mae": 0.08379111687289625,
-      "dl_wear_mae": 0.23664119317006482,
-      "xgb_health_f1": 0.6752055566860901,
-      "dl_health_f1": 0.27135841565981667
+  "dataset": "data/dl_v1",
+  "n_test": 300,
+  "seed": 42,
+  "class_names": ["critical", "healthy", "monitor", "warning"],
+  "models": {
+    "1dcnn_zscore_baseline": {
+      "onnx": "experiments/models/dl_1dcnn.onnx",
+      "train_noise_sd": 0.0,
+      "normalize_for_dl": "zscore",
+      "configs": [
+        {"kind": "clean", "level": 0.0, "label": "clean", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2366, "xgb_health_f1": 0.6752, "dl_health_f1": 0.2714},
+        {"kind": "gaussian", "level": 0.1, "label": "gaussian sd=0.1*rms", "xgb_wear_mae": 0.0931, "dl_wear_mae": 0.2493, "xgb_health_f1": 0.6325, "dl_health_f1": 0.1761},
+        {"kind": "gaussian", "level": 0.25, "label": "gaussian sd=0.25*rms", "xgb_wear_mae": 0.1142, "dl_wear_mae": 0.4445, "xgb_health_f1": 0.5951, "dl_health_f1": 0.0842},
+        {"kind": "gaussian", "level": 0.5, "label": "gaussian sd=0.5*rms", "xgb_wear_mae": 0.1323, "dl_wear_mae": 0.7423, "xgb_health_f1": 0.5755, "dl_health_f1": 0.0775},
+        {"kind": "drift", "level": 0.5, "label": "drift 0.5*rms", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2366, "xgb_health_f1": 0.6752, "dl_health_f1": 0.2714},
+        {"kind": "drift", "level": 1.0, "label": "drift 1.0*rms", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2366, "xgb_health_f1": 0.6752, "dl_health_f1": 0.2714},
+        {"kind": "quantization", "level": 8, "label": "quantize 8-bit", "xgb_wear_mae": 0.0843, "dl_wear_mae": 0.2366, "xgb_health_f1": 0.6675, "dl_health_f1": 0.2714},
+        {"kind": "quantization", "level": 4, "label": "quantize 4-bit", "xgb_wear_mae": 0.0917, "dl_wear_mae": 0.2351, "xgb_health_f1": 0.6188, "dl_health_f1": 0.1994}
+      ]
     },
-    {
-      "kind": "gaussian",
-      "level": 0.1,
-      "label": "gaussian sd=0.1*rms",
-      "xgb_wear_mae": 0.09313471007179192,
-      "dl_wear_mae": 0.24929337230378587,
-      "xgb_health_f1": 0.632465785133532,
-      "dl_health_f1": 0.17612866245962383
+    "1dcnn_zscore_noisy015": {
+      "onnx": "experiments/models/dl_1dcnn_noisy.onnx",
+      "train_noise_sd": 0.15,
+      "normalize_for_dl": "zscore",
+      "configs": [
+        {"kind": "clean", "level": 0.0, "label": "clean", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2762, "xgb_health_f1": 0.6752, "dl_health_f1": 0.1672},
+        {"kind": "gaussian", "level": 0.1, "label": "gaussian sd=0.1*rms", "xgb_wear_mae": 0.0931, "dl_wear_mae": 0.2641, "xgb_health_f1": 0.6325, "dl_health_f1": 0.1657},
+        {"kind": "gaussian", "level": 0.25, "label": "gaussian sd=0.25*rms", "xgb_wear_mae": 0.1142, "dl_wear_mae": 0.2550, "xgb_health_f1": 0.5951, "dl_health_f1": 0.1467},
+        {"kind": "gaussian", "level": 0.5, "label": "gaussian sd=0.5*rms", "xgb_wear_mae": 0.1323, "dl_wear_mae": 0.2508, "xgb_health_f1": 0.5755, "dl_health_f1": 0.1144},
+        {"kind": "drift", "level": 0.5, "label": "drift 0.5*rms", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2762, "xgb_health_f1": 0.6752, "dl_health_f1": 0.1672},
+        {"kind": "drift", "level": 1.0, "label": "drift 1.0*rms", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2762, "xgb_health_f1": 0.6752, "dl_health_f1": 0.1672},
+        {"kind": "quantization", "level": 8, "label": "quantize 8-bit", "xgb_wear_mae": 0.0843, "dl_wear_mae": 0.2761, "xgb_health_f1": 0.6675, "dl_health_f1": 0.1672},
+        {"kind": "quantization", "level": 4, "label": "quantize 4-bit", "xgb_wear_mae": 0.0917, "dl_wear_mae": 0.2727, "xgb_health_f1": 0.6188, "dl_health_f1": 0.1657}
+      ]
     },
-    {
-      "kind": "gaussian",
-      "level": 0.25,
-      "label": "gaussian sd=0.25*rms",
-      "xgb_wear_mae": 0.11423256243393103,
-      "dl_wear_mae": 0.4444848805102729,
-      "xgb_health_f1": 0.5951200242976654,
-      "dl_health_f1": 0.08423132183908046
-    },
-    {
-      "kind": "gaussian",
-      "level": 0.5,
-      "label": "gaussian sd=0.5*rms",
-      "xgb_wear_mae": 0.13229481035547205,
-      "dl_wear_mae": 0.7422769524364667,
-      "xgb_health_f1": 0.575545179262148,
-      "dl_health_f1": 0.07746478873239436
-    },
-    {
-      "kind": "drift",
-      "level": 0.5,
-      "label": "drift 0.5*rms",
-      "xgb_wear_mae": 0.08382982492394199,
-      "dl_wear_mae": 0.23664119048785578,
-      "xgb_health_f1": 0.6752055566860901,
-      "dl_health_f1": 0.27135841565981667
-    },
-    {
-      "kind": "drift",
-      "level": 1.0,
-      "label": "drift 1.0*rms",
-      "xgb_wear_mae": 0.08381982962237745,
-      "dl_wear_mae": 0.23664117538801246,
-      "xgb_health_f1": 0.6752055566860901,
-      "dl_health_f1": 0.27135841565981667
-    },
-    {
-      "kind": "quantization",
-      "level": 8,
-      "label": "quantize 8-bit",
-      "xgb_wear_mae": 0.0843184688104335,
-      "dl_wear_mae": 0.23660282923650158,
-      "xgb_health_f1": 0.6674592283905728,
-      "dl_health_f1": 0.27135841565981667
-    },
-    {
-      "kind": "quantization",
-      "level": 4,
-      "label": "quantize 4-bit",
-      "xgb_wear_mae": 0.09171428718080714,
-      "dl_wear_mae": 0.23510828198636272,
-      "xgb_health_f1": 0.6187927353778038,
-      "dl_health_f1": 0.19944312393887947
+    "1dcnn_zscore_noisy010": {
+      "onnx": "experiments/models/dl_1dcnn_noisy01.onnx",
+      "train_noise_sd": 0.10,
+      "normalize_for_dl": "zscore",
+      "configs": [
+        {"kind": "clean", "level": 0.0, "label": "clean", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2354, "xgb_health_f1": 0.6752, "dl_health_f1": 0.2478},
+        {"kind": "gaussian", "level": 0.1, "label": "gaussian sd=0.1*rms", "xgb_wear_mae": 0.0931, "dl_wear_mae": 0.2466, "xgb_health_f1": 0.6325, "dl_health_f1": 0.1680},
+        {"kind": "gaussian", "level": 0.25, "label": "gaussian sd=0.25*rms", "xgb_wear_mae": 0.1142, "dl_wear_mae": 0.3152, "xgb_health_f1": 0.5951, "dl_health_f1": 0.1224},
+        {"kind": "gaussian", "level": 0.5, "label": "gaussian sd=0.5*rms", "xgb_wear_mae": 0.1323, "dl_wear_mae": 0.3802, "xgb_health_f1": 0.5755, "dl_health_f1": 0.0788},
+        {"kind": "drift", "level": 0.5, "label": "drift 0.5*rms", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2354, "xgb_health_f1": 0.6752, "dl_health_f1": 0.2478},
+        {"kind": "drift", "level": 1.0, "label": "drift 1.0*rms", "xgb_wear_mae": 0.0838, "dl_wear_mae": 0.2354, "xgb_health_f1": 0.6752, "dl_health_f1": 0.2478},
+        {"kind": "quantization", "level": 8, "label": "quantize 8-bit", "xgb_wear_mae": 0.0843, "dl_wear_mae": 0.2354, "xgb_health_f1": 0.6675, "dl_health_f1": 0.2504},
+        {"kind": "quantization", "level": 4, "label": "quantize 4-bit", "xgb_wear_mae": 0.0917, "dl_wear_mae": 0.2352, "xgb_health_f1": 0.6188, "dl_health_f1": 0.1782}
+      ]
     }
-  ],
-  "class_names": [
-    "critical",
-    "healthy",
-    "monitor",
-    "warning"
-  ],
-  "n_test": 300
+  },
+  "notes": "XGBoost scores are identical across DL variants (same DSP re-extract). Drift is rejected by the shared band-pass front-end. Noise-augmented zscore 1D-CNN (0.15*rms) cuts wear MAE at sd=0.5*rms from 0.74 to 0.25."
 }

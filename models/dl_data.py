@@ -114,6 +114,14 @@ class ArgusDLDataset(Dataset):
     mode:
         ``"waveform"`` | ``"spectrogram"`` | ``"fusion"`` - selects which tensors
         the batch dict carries.
+    noise_sd_ratio:
+        When > 0, additive Gaussian noise ``N(0, noise_sd_ratio * rms)`` is applied
+        per sample to the normalized waveform **on-the-fly** in ``__getitem__``
+        (never written to Parquet). ``rms`` is the per-chunk RMS of the normalized
+        waveform. Use only on the training loader; val/test loaders must pass 0.
+    processor, fs_hz:
+        Required for on-the-fly spectrogram computation when ``noise_sd_ratio > 0``
+        (noise is injected into the waveform before STFT).
     """
 
     def __init__(
@@ -124,6 +132,10 @@ class ArgusDLDataset(Dataset):
         y_reg: np.ndarray,
         y_clf: np.ndarray,
         mode: str,
+        *,
+        noise_sd_ratio: float = 0.0,
+        processor: Any | None = None,
+        fs_hz: float | None = None,
     ) -> None:
         self.mode = mode
         self.waveforms_norm = waveforms_norm
@@ -131,9 +143,21 @@ class ArgusDLDataset(Dataset):
         self.thermal = thermal
         self.y_reg = y_reg.astype(np.float32)
         self.y_clf = y_clf.astype(np.int64)
+        self.noise_sd_ratio = float(noise_sd_ratio)
+        self.processor = processor
+        self.fs_hz = fs_hz
 
     def __len__(self) -> int:
         return int(self.y_reg.shape[0])
+
+    def _maybe_noisy_waveform(self, idx: int) -> np.ndarray:
+        """Return normalized waveform, optionally with training-time noise."""
+        wf = self.waveforms_norm[idx]
+        if self.noise_sd_ratio <= 0.0:
+            return wf
+        rms = float(np.sqrt(np.mean(wf**2))) + 1e-12
+        noise = np.random.normal(0.0, self.noise_sd_ratio * rms, size=wf.shape).astype(np.float32)
+        return wf + noise
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
         item: dict[str, torch.Tensor] = {
@@ -142,10 +166,17 @@ class ArgusDLDataset(Dataset):
         }
         if self.mode in ("waveform", "fusion"):
             # (1, L) - single channel.
-            item["waveform"] = torch.from_numpy(self.waveforms_norm[idx]).unsqueeze(0)
+            item["waveform"] = torch.from_numpy(self._maybe_noisy_waveform(idx)).unsqueeze(0)
         if self.mode == "spectrogram":
+            if self.noise_sd_ratio > 0.0:
+                if self.processor is None or self.fs_hz is None:
+                    raise RuntimeError("processor and fs_hz required for noisy spectrogram training.")
+                wf = self._maybe_noisy_waveform(idx)
+                spec = self.processor.compute_stft(wf, self.fs_hz)["power"].astype(np.float32)
+            else:
+                spec = self.spectrograms[idx]
             # (1, F, T) - single channel.
-            item["spectrogram"] = torch.from_numpy(self.spectrograms[idx]).unsqueeze(0)
+            item["spectrogram"] = torch.from_numpy(spec).unsqueeze(0)
         if self.mode == "fusion":
             item["thermal"] = torch.from_numpy(self.thermal[idx])
         return item
@@ -192,6 +223,7 @@ def prepare_dl_data(
     batch_size: int = 32,
     seed: int = 42,
     num_workers: int = 0,
+    train_noise_sd: float = 0.0,
 ) -> dict[str, Any]:
     """Load, precompute, split, and wrap the dataset into DataLoaders.
 
@@ -240,15 +272,19 @@ def prepare_dl_data(
         input_len = int(wf_norm.shape[1])
 
     # --- Precompute spectrograms (spectrogram) ---
+    # Also keep normalized waveforms so training-time noise can be injected before STFT.
     spectrograms = None
     input_shape = None
     if mode == "spectrogram":
+        if waveforms_norm is None:
+            wf_norm = np.zeros((n, target_len if target_len else waveforms[0].size), dtype=np.float32)
+            for i in range(n):
+                w = processor.get_normalized_waveform(waveforms[i], fs)
+                wf_norm[i] = _crop_or_pad(w, target_len if target_len else w.size)
+            waveforms_norm = wf_norm
         specs = []
         for i in range(n):
-            w = _crop_or_pad(waveforms[i], target_len) if target_len else waveforms[i]
-            specs.append(processor.compute_stft(processor._normalize(
-                processor.preprocess(w, fs), method=processor.dl.normalize_for_dl
-            ), fs)["power"])
+            specs.append(processor.compute_stft(waveforms_norm[i], fs)["power"])
         spectrograms = np.stack(specs).astype(np.float32)
         input_shape = tuple(int(s) for s in spectrograms.shape[1:])
 
@@ -271,7 +307,9 @@ def prepare_dl_data(
     strat = manifest["wear_bin"].to_numpy() if "wear_bin" in manifest.columns else None
     fit_idx, val_idx, test_idx = _stratified_split(n, strat, seed)
 
-    def _subset(idx: np.ndarray) -> ArgusDLDataset:
+    def _subset(
+        idx: np.ndarray, *, noise_sd_ratio: float = 0.0
+    ) -> ArgusDLDataset:
         return ArgusDLDataset(
             waveforms_norm[idx] if waveforms_norm is not None else None,
             spectrograms[idx] if spectrograms is not None else None,
@@ -279,12 +317,19 @@ def prepare_dl_data(
             y_reg[idx],
             y_clf[idx],
             mode,
+            noise_sd_ratio=noise_sd_ratio,
+            processor=processor if noise_sd_ratio > 0.0 else None,
+            fs_hz=fs if noise_sd_ratio > 0.0 else None,
         )
 
     g = torch.Generator()
     g.manual_seed(seed)
     train_loader = DataLoader(
-        _subset(fit_idx), batch_size=batch_size, shuffle=True, num_workers=num_workers, generator=g
+        _subset(fit_idx, noise_sd_ratio=train_noise_sd),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=num_workers,
+        generator=g,
     )
     val_loader = DataLoader(_subset(val_idx), batch_size=batch_size, num_workers=num_workers)
     test_loader = DataLoader(_subset(test_idx), batch_size=batch_size, num_workers=num_workers)
@@ -303,4 +348,6 @@ def prepare_dl_data(
         "input_shape": input_shape,
         "manifest": manifest,
         "n_samples": n,
+        "train_noise_sd": train_noise_sd,
+        "normalize_for_dl": processor.dl.normalize_for_dl,
     }

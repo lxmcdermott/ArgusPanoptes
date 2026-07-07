@@ -30,6 +30,7 @@ so the ML layer can trivially select feature groups for ablations.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import numpy as np
@@ -40,6 +41,7 @@ from scipy import stats as sp_stats
 from dsp.config import ProcessorConfig, load_processor_config
 
 __version__ = "0.1.0"
+_logger = logging.getLogger(__name__)
 
 __all__ = ["SignalProcessor", "TIME_DOMAIN_FEATURES", "FREQUENCY_DOMAIN_FEATURES", "__version__"]
 
@@ -97,6 +99,7 @@ class SignalProcessor:
     """
 
     version: str = __version__
+    _warned_dl_none: bool = False
 
     def __init__(self, config: ProcessorConfig | dict[str, Any] | str | None = None) -> None:
         if config is None:
@@ -434,6 +437,13 @@ class SignalProcessor:
             1-D ``float32`` array, same length as the (raveled) input.
         """
         xp = self.preprocess(x, fs)
+        if self.dl.normalize_for_dl == "none" and not SignalProcessor._warned_dl_none:
+            _logger.warning(
+                "dl.normalize_for_dl='none': CNN inputs keep absolute amplitude (wear cue) "
+                "but are scale-sensitive across gains/operating points. Prefer 'zscore' when "
+                "generalization matters; use 'none' only when amplitude is an intentional feature."
+            )
+            SignalProcessor._warned_dl_none = True
         xn = self._normalize(xp, method=self.dl.normalize_for_dl)
         return np.ascontiguousarray(xn, dtype=np.float32)
 

@@ -20,7 +20,7 @@ watching the factory floor.
 | --------------------------------------- | --------------- | ----------------------------------- |
 | **Synthetic data generator**            | `sensors/`      | ✅ **v1 complete**                  |
 | **DSP & feature extraction**            | `dsp/`          | ✅ **v1 implemented (Day 2)** + DL input methods (Day 3) |
-| **ML pipeline & experiments**           | `models/`       | ✅ XGBoost baseline + ablations (Day 2) · ✅ DL (1D-CNN / spectrogram / fusion) + ONNX (Day 3) |
+| **ML pipeline & experiments**           | `models/`       | ✅ XGBoost baseline + ablations (Day 2) · ✅ DL + ONNX (Day 3) · ✅ hardened (noise aug, norm ablation) |
 | Inference, FastAPI, Streamlit           | `app/`          | 🚧 scaffold (Day 4–5)               |
 | Docker / edge                           | `deployment/`   | 🚧 scaffold (Day 6)                 |
 
@@ -30,8 +30,11 @@ labels, validation, a Parquet dataset-generation pipeline, a modular
 `SignalProcessor` that extracts time/frequency features (including
 tooth-pass-relative band energies), interpretable **XGBoost baselines +
 ablations**, and **deep-learning models** (1D-CNN, spectrogram CNN, and
-vibration+thermal fusion) with **ONNX export + CPU edge benchmarks** and a
-noise-robustness ablation. The remaining layers are scaffolded so the one-week
+vibration+thermal fusion) with **ONNX export + CPU edge benchmarks**, configurable
+**training-time noise augmentation**, and a **noise-robustness / normalization
+ablation**. Day 3 hardening confirmed `normalize_for_dl="none"` closes the DL
+accuracy gap to XGBoost on clean data, while noise augmentation hardens zscore
+models against sensor corruption. The remaining layers are scaffolded so the one-week
 plan can proceed immediately.
 
 ---
@@ -106,8 +109,11 @@ python scripts/generate_dataset.py --num-samples 2500 --output-dir data/dl_v1 \
 python models/train_dl.py --model 1dcnn       --data-dir data/dl_v1 --epochs 40
 python models/train_dl.py --model spectrogram --data-dir data/dl_v1 --epochs 40
 python models/train_dl.py --model fusion      --data-dir data/dl_v1 --epochs 40
+# Optional: noise augmentation or amplitude-preserving normalization:
+python models/train_dl.py --model fusion --data-dir data/dl_v1 --train-noise-sd 0.15 --output-suffix _noisy
+python models/train_dl.py --model fusion --data-dir data/dl_v1 --normalize-for-dl none --output-suffix _normnone
 # Benchmark ONNX CPU latency and run the noise-robustness ablation:
-python scripts/benchmark_onnx.py
+python scripts/benchmark_onnx.py --model fusion --device cpu
 python experiments/robustness_ablation.py --data-dir data/dl_v1
 ```
 
@@ -216,11 +222,33 @@ and a **builder mindset** shipping a quality v1 fast.
 
 ---
 
+## Metrics / Results from Experiments
+
+Full tables: [`experiments/dl_results.md`](experiments/dl_results.md) · XGBoost:
+[`experiments/baseline_results.md`](experiments/baseline_results.md)
+
+**Best clean wear_level (test n=500, seed 42):**
+
+| Model | MAE | R² | health F1 |
+| --- | --- | --- | --- |
+| XGBoost | 0.080 | 0.886 | 0.651 |
+| Fusion (`normalize_for_dl=none`) | **0.100** | **0.815** | **0.695** |
+| Fusion (zscore, default) | 0.190 | 0.352 | 0.373 |
+| 1D-CNN (`normalize_for_dl=none`) | 0.100 | 0.783 | 0.573 |
+
+**Noise robustness (1D-CNN, Gaussian sd=0.5·rms, test n=300):** zscore baseline
+wear MAE 0.74 → **0.25** with `--train-noise-sd 0.15` (3× improvement).
+
+**ONNX CPU latency:** ~0.34 ms/chunk p50 (1D-CNN / fusion) vs ~9.8 ms end-to-end
+for XGBoost (DSP extract dominates).
+
+---
+
 ## Roadmap
 
 Day 1 ✅ sensors + validation → Day 2 ✅ DSP features + dataset integration +
-XGBoost baseline + ablations → Day 3 ✅ DL (1D-CNN + spectrogram + fusion) + ONNX
-export + CPU edge benchmarks + noise-robustness ablation → Day 4 streaming
+XGBoost baseline + ablations → Day 3 ✅ DL + ONNX + benchmarks + robustness
+**hardened** (noise aug, `normalize_for_dl` ablation) → Day 4 streaming
 `Perceptor` + FastAPI (`/infer`, `/batch`) → Day 5 Streamlit + cost/nesting
 integration mock → Day 6 experiments + Docker/edge → Day 7 polish + demo. Future:
 swap simulators for a real DAQ (Pi + MPU6050 + MLX90640) and add vision depth.

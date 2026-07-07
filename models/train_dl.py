@@ -142,13 +142,34 @@ def run(
     plots_dir: Path,
     metrics_dir: Path,
     compare_baseline: bool,
+    train_noise_sd: float = 0.0,
+    normalize_for_dl: str | None = None,
+    patience: int = 8,
+    output_suffix: str = "",
 ) -> dict[str, Any]:
     set_seed(seed)
     t0 = time.perf_counter()
+
+    processor = None
+    if normalize_for_dl is not None:
+        from dsp import load_processor_config
+        from dsp import SignalProcessor
+
+        processor = SignalProcessor(load_processor_config(overrides={"dl": {"normalize_for_dl": normalize_for_dl}}))
+        logger.info("DL normalization override: normalize_for_dl=%r", normalize_for_dl)
+
     logger.info("Preparing DL data (%s) from %s ...", model_name, data_dir)
     data = prepare_dl_data(
-        data_dir, model_name, target_len=target_len, batch_size=batch_size, seed=seed
+        data_dir,
+        model_name,
+        processor=processor,
+        target_len=target_len,
+        batch_size=batch_size,
+        seed=seed,
+        train_noise_sd=train_noise_sd,
     )
+    if train_noise_sd > 0.0:
+        logger.info("Training-time Gaussian noise augmentation: sd=%.3f * per-chunk RMS", train_noise_sd)
     logger.info(
         "Split: %d fit / %d val / %d test (of %d)  fs=%.0f Hz",
         len(data["fit_idx"]), len(data["val_idx"]), len(data["test_idx"]),
@@ -169,6 +190,7 @@ def run(
         lr=lr,
         device=device,
         seed=seed,
+        patience=patience,
     )
     train_time = time.perf_counter() - t_train
     logger.info("Trained in %.1fs (%d epochs, best val=%.4f)",
@@ -204,24 +226,31 @@ def run(
 
     # --- Artifacts ---
     models_dir.mkdir(parents=True, exist_ok=True)
-    ckpt_path = models_dir / f"dl_{model_name}.pt"
+    artifact_name = f"dl_{model_name}{output_suffix}"
+    ckpt_path = models_dir / f"{artifact_name}.pt"
     torch.save({"state_dict": model.state_dict(), "config": vars(cfg),
-                "class_names": data["class_names"], "model_name": model_name}, ckpt_path)
+                "class_names": data["class_names"], "model_name": model_name,
+                "train_noise_sd": train_noise_sd,
+                "normalize_for_dl": data.get("normalize_for_dl", "zscore")}, ckpt_path)
     logger.info("Saved checkpoint -> %s", ckpt_path)
 
-    onnx_path = models_dir / f"dl_{model_name}.onnx"
+    onnx_path = models_dir / f"{artifact_name}.onnx"
     seq_len = data["input_len"] or target_len
     n_freq, n_time = (data["input_shape"] or (513, 161))
     example = example_inputs_for(model, batch=1, seq_len=seq_len, n_freq=n_freq, n_time=n_time)
     export_to_onnx(model, onnx_path, example_input=example)
     logger.info("Exported ONNX -> %s", onnx_path)
 
-    _plot_curves(history, f"DL training - {model_name}", plots_dir / f"dl_{model_name}_training_curve.png")
+    _plot_curves(history, f"DL training - {artifact_name}", plots_dir / f"{artifact_name}_training_curve.png")
 
     report: dict[str, Any] = {
         "model": model_name,
+        "artifact_name": artifact_name,
         "n_params": int(n_params),
         "seed": seed,
+        "train_noise_sd": train_noise_sd,
+        "normalize_for_dl": data.get("normalize_for_dl", "zscore"),
+        "early_stopping_patience": patience,
         "epochs_run": history["epochs_run"],
         "train_time_s": train_time,
         "n_train": int(len(data["fit_idx"])),
@@ -236,7 +265,7 @@ def run(
         "artifacts": {"checkpoint": str(ckpt_path), "onnx": str(onnx_path)},
     }
     metrics_dir.mkdir(parents=True, exist_ok=True)
-    metrics_path = metrics_dir / f"dl_{model_name}_metrics.json"
+    metrics_path = metrics_dir / f"{artifact_name}_metrics.json"
     with metrics_path.open("w", encoding="utf-8") as fh:
         json.dump(report, fh, indent=2, default=float)
     logger.info("Saved metrics JSON -> %s", metrics_path)
@@ -256,6 +285,32 @@ def main() -> int:
     parser.add_argument("--target-len", type=int, default=16384,
                         help="Fixed waveform length (center-crop/pad). ~0.4 s @ 40.96 kHz.")
     parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--train-noise-sd",
+        type=float,
+        default=0.0,
+        dest="train_noise_sd",
+        help="Training-only additive Gaussian noise as a fraction of per-chunk RMS "
+        "(e.g. 0.15 = N(0, 0.15*rms)). Val/test loaders never receive noise.",
+    )
+    parser.add_argument(
+        "--normalize-for-dl",
+        choices=["none", "zscore", "peak", "rms"],
+        default=None,
+        help="Override dl.normalize_for_dl for this run (default: processor config).",
+    )
+    parser.add_argument(
+        "--early-stopping-patience",
+        type=int,
+        default=8,
+        help="Early-stopping patience on validation loss (epochs).",
+    )
+    parser.add_argument(
+        "--output-suffix",
+        type=str,
+        default="",
+        help="Suffix appended to artifact names (e.g. '_noisy' -> dl_fusion_noisy.onnx).",
+    )
     parser.add_argument("--models-dir", type=Path, default=root / "experiments" / "models")
     parser.add_argument("--plots-dir", type=Path, default=root / "experiments" / "plots")
     parser.add_argument("--metrics-dir", type=Path, default=root / "experiments")
@@ -276,6 +331,10 @@ def main() -> int:
         plots_dir=args.plots_dir,
         metrics_dir=args.metrics_dir,
         compare_baseline=not args.no_compare_baseline,
+        train_noise_sd=args.train_noise_sd,
+        normalize_for_dl=args.normalize_for_dl,
+        patience=args.early_stopping_patience,
+        output_suffix=args.output_suffix,
     )
     return 0
 
