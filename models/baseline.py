@@ -355,10 +355,18 @@ def run(
         clf = train_classifier(X_all.iloc[train_idx], y_enc[train_idx], seed, n_classes)
         y_pred = clf.predict(X_all.iloc[test_idx])
         y_true = y_enc[test_idx]
+        all_labels = np.arange(n_classes)
         acc = float(accuracy_score(y_true, y_pred))
-        f1m = float(f1_score(y_true, y_pred, average="macro"))
+        f1m = float(
+            f1_score(y_true, y_pred, average="macro", labels=all_labels, zero_division=0)
+        )
         cls_report = classification_report(
-            y_true, y_pred, target_names=list(le.classes_), zero_division=0, output_dict=True
+            y_true,
+            y_pred,
+            labels=all_labels,
+            target_names=list(le.classes_),
+            zero_division=0,
+            output_dict=True,
         )
         logger.info("  Accuracy=%.4f  macro-F1=%.4f", acc, f1m)
         logger.info("  Classes: %s", list(le.classes_))

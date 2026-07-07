@@ -233,6 +233,22 @@ def test_construct_from_dict_and_overrides():
     assert sp2.freq.n_harmonics == 2
 
 
+def test_n_harmonics_limits_harmonic_bands(proc, vib):
+    """``frequency.n_harmonics`` must gate 2x/3x band integration (fixed schema)."""
+    sp2 = SignalProcessor(load_processor_config(overrides={"frequency": {"n_harmonics": 2}}))
+    _, accel, meta = vib.generate(duration_s=3.0, wear=0.5, seed=31)
+    fs = meta["fs_hz"]
+    tpf = meta["tooth_pass_freq_hz"]
+    x = sp2.preprocess(accel, fs=fs)
+    f3 = sp2.extract_frequency_domain_features(x, fs=fs, tpf_hz=tpf)
+    f2 = proc.extract_frequency_domain_features(
+        proc.preprocess(accel, fs=fs), fs=fs, tpf_hz=tpf
+    )
+    assert f3["fd_tpf_harmonic3_energy"] == 0.0
+    assert f3["fd_tpf_harmonic2_energy"] > 0.0
+    assert f3["fd_tpf_harmonic_energy_total"] < f2["fd_tpf_harmonic_energy_total"]
+
+
 def test_invalid_fs_raises(proc):
     with pytest.raises(ValueError):
         proc.preprocess(np.ones(100), fs=0.0)

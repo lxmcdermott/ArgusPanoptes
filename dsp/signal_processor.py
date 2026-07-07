@@ -333,9 +333,23 @@ class SignalProcessor:
         if tpf_hz is not None and tpf_hz > 0:
             frac = self.freq.tpf_band_frac
             nyq = fs / 2.0
+            n_harm = self.freq.n_harmonics
             fund = self._band_energy(freqs, psd, tpf_hz * (1 - frac), tpf_hz * (1 + frac))
-            h2 = self._band_energy(freqs, psd, 2 * tpf_hz * (1 - frac), min(2 * tpf_hz * (1 + frac), nyq))
-            h3 = self._band_energy(freqs, psd, 3 * tpf_hz * (1 - frac), min(3 * tpf_hz * (1 + frac), nyq))
+            # Fixed feature schema supports 2x and 3x; higher orders are omitted in v1.
+            h2 = (
+                self._band_energy(
+                    freqs, psd, 2 * tpf_hz * (1 - frac), min(2 * tpf_hz * (1 + frac), nyq)
+                )
+                if n_harm >= 2
+                else 0.0
+            )
+            h3 = (
+                self._band_energy(
+                    freqs, psd, 3 * tpf_hz * (1 - frac), min(3 * tpf_hz * (1 + frac), nyq)
+                )
+                if n_harm >= 3
+                else 0.0
+            )
             harmonic_total = fund + h2 + h3
             features["fd_tpf_band_energy"] = fund
             features["fd_tpf_harmonic2_energy"] = h2

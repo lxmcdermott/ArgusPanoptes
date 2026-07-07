@@ -1,8 +1,8 @@
 {
-  "seed": 42,
-  "n_samples": 300,
-  "n_train": 240,
-  "n_test": 60,
+  "seed": 0,
+  "n_samples": 20,
+  "n_train": 16,
+  "n_test": 4,
   "feature_groups": {
     "time": [
       "vib_td_rms",
@@ -101,154 +101,154 @@
   },
   "regression": {
     "wear_level": {
-      "mae": 0.15026585885444582,
-      "rmse": 0.18624921381476872,
-      "r2": 0.5580206911209893,
-      "best_iteration": 363,
+      "mae": 0.6582145785979782,
+      "rmse": 0.6595094150039281,
+      "r2": -587.2009067823517,
+      "best_iteration": 1,
       "top_features": [
         [
-          "vib_fd_dominant_amplitude",
-          0.33064714074134827
-        ],
-        [
-          "therm_slope_c_per_s",
-          0.05822910740971565
-        ],
-        [
-          "max_temp_c",
-          0.049414750188589096
-        ],
-        [
-          "vib_td_peak_to_peak",
-          0.04931071028113365
+          "feed_per_tooth_mm",
+          0.2272043526172638
         ],
         [
           "material_removal_rate_mm3_s",
-          0.043032024055719376
+          0.1737067699432373
         ],
         [
-          "vib_td_margin_factor",
-          0.034476250410079956
+          "tooth_pass_freq_hz",
+          0.08985555917024612
         ],
         [
-          "vib_td_envelope_mean",
-          0.032704055309295654
+          "blade_speed_sfpm",
+          0.07907814532518387
         ],
         [
-          "vib_fd_tpf_harmonic2_energy",
-          0.028696808964014053
+          "vib_td_shape_factor",
+          0.0787980780005455
         ],
         [
-          "vib_fd_broadband_energy",
-          0.028361091390252113
+          "vib_fd_spectral_rolloff_hz",
+          0.07706232368946075
         ],
         [
-          "vib_fd_tpf_band_energy",
-          0.025593746453523636
+          "num_teeth",
+          0.07230615615844727
+        ],
+        [
+          "depth_mm",
+          0.04605725407600403
+        ],
+        [
+          "vib_fd_spectral_centroid_hz",
+          0.038861632347106934
+        ],
+        [
+          "vib_td_peak",
+          0.02287214994430542
         ]
       ]
     },
     "cycle_time_factor": {
-      "mae": 0.06991895214249766,
-      "rmse": 0.08693006784236608,
-      "r2": 0.5547056616236516,
-      "best_iteration": 366,
+      "mae": 0.3060697779304727,
+      "rmse": 0.30667187468716284,
+      "r2": -587.2008941631063,
+      "best_iteration": 1,
       "top_features": [
         [
-          "vib_fd_dominant_amplitude",
-          0.28776440024375916
-        ],
-        [
-          "therm_slope_c_per_s",
-          0.06692036241292953
-        ],
-        [
-          "temp_rise_c",
-          0.0648970752954483
-        ],
-        [
-          "max_temp_c",
-          0.052408043295145035
-        ],
-        [
-          "vib_td_peak_to_peak",
-          0.044337134808301926
-        ],
-        [
-          "vib_td_envelope_mean",
-          0.03974371403455734
+          "feed_per_tooth_mm",
+          0.22712142765522003
         ],
         [
           "material_removal_rate_mm3_s",
-          0.03852536529302597
+          0.17364342510700226
         ],
         [
-          "vib_td_margin_factor",
-          0.03389681503176689
+          "tooth_pass_freq_hz",
+          0.08982264995574951
         ],
         [
-          "vib_fd_broadband_energy",
-          0.028906451538205147
+          "blade_speed_sfpm",
+          0.07904916256666183
         ],
         [
-          "vib_fd_tpf_harmonic2_energy",
-          0.026000749319791794
+          "vib_td_shape_factor",
+          0.07876933366060257
+        ],
+        [
+          "vib_fd_spectral_rolloff_hz",
+          0.07703405618667603
+        ],
+        [
+          "num_teeth",
+          0.07227960973978043
+        ],
+        [
+          "depth_mm",
+          0.046040475368499756
+        ],
+        [
+          "vib_fd_spectral_centroid_hz",
+          0.03884733468294144
+        ],
+        [
+          "vib_td_peak",
+          0.02286386489868164
         ]
       ]
     },
     "quality_score": {
-      "mae": 0.07468900625105633,
-      "rmse": 0.09319517722731306,
-      "r2": 0.5569643821297163,
-      "best_iteration": 301,
+      "mae": 0.3291072818484085,
+      "rmse": 0.3297547003126953,
+      "r2": -587.2008811345927,
+      "best_iteration": 1,
       "top_features": [
         [
-          "vib_fd_dominant_amplitude",
-          0.30704766511917114
-        ],
-        [
-          "therm_slope_c_per_s",
-          0.06677743047475815
-        ],
-        [
-          "vib_td_envelope_mean",
-          0.057081982493400574
-        ],
-        [
-          "vib_td_peak_to_peak",
-          0.04857860133051872
-        ],
-        [
-          "max_temp_c",
-          0.04697407782077789
+          "feed_per_tooth_mm",
+          0.22712138295173645
         ],
         [
           "material_removal_rate_mm3_s",
-          0.04403308779001236
+          0.17364349961280823
         ],
         [
-          "vib_td_margin_factor",
-          0.04319455102086067
+          "tooth_pass_freq_hz",
+          0.08982256054878235
         ],
         [
-          "vib_fd_tpf_harmonic2_energy",
-          0.027505507692694664
+          "blade_speed_sfpm",
+          0.07904919236898422
         ],
         [
-          "vib_fd_broadband_energy",
-          0.025098348036408424
+          "vib_td_shape_factor",
+          0.07876931875944138
         ],
         [
-          "vib_fd_dominant_freq_hz",
-          0.024554334580898285
+          "vib_fd_spectral_rolloff_hz",
+          0.07703397423028946
+        ],
+        [
+          "num_teeth",
+          0.0722796842455864
+        ],
+        [
+          "depth_mm",
+          0.046040479093790054
+        ],
+        [
+          "vib_fd_spectral_centroid_hz",
+          0.03884730488061905
+        ],
+        [
+          "vib_td_peak",
+          0.022863786667585373
         ]
       ]
     }
   },
   "classification": {
     "health_state": {
-      "accuracy": 0.5166666666666667,
-      "macro_f1": 0.44488644090847274,
+      "accuracy": 0.0,
+      "macro_f1": 0.0,
       "classes": [
         "critical",
         "healthy",
@@ -257,83 +257,83 @@
       ],
       "report": {
         "critical": {
-          "precision": 0.3333333333333333,
-          "recall": 0.16666666666666666,
-          "f1-score": 0.2222222222222222,
-          "support": 6.0
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
         },
         "healthy": {
-          "precision": 0.625,
-          "recall": 0.7894736842105263,
-          "f1-score": 0.6976744186046512,
-          "support": 19.0
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 4.0
         },
         "monitor": {
-          "precision": 0.3125,
-          "recall": 0.35714285714285715,
-          "f1-score": 0.3333333333333333,
-          "support": 14.0
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
         },
         "warning": {
-          "precision": 0.5882352941176471,
-          "recall": 0.47619047619047616,
-          "f1-score": 0.5263157894736842,
-          "support": 21.0
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 0.0
         },
-        "accuracy": 0.5166666666666667,
+        "accuracy": 0.0,
         "macro avg": {
-          "precision": 0.46476715686274506,
-          "recall": 0.4473684210526315,
-          "f1-score": 0.44488644090847274,
-          "support": 60.0
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 4.0
         },
         "weighted avg": {
-          "precision": 0.5100490196078431,
-          "recall": 0.5166666666666667,
-          "f1-score": 0.5051407588739291,
-          "support": 60.0
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1-score": 0.0,
+          "support": 4.0
         }
       },
       "top_features": [
         [
-          "temp_rise_c",
-          0.0929623618721962
-        ],
-        [
-          "vib_fd_total_power",
-          0.04750638082623482
-        ],
-        [
-          "max_temp_c",
-          0.04742498695850372
-        ],
-        [
-          "vib_fd_tpf_band_energy",
-          0.043763160705566406
-        ],
-        [
-          "vib_td_envelope_std",
-          0.03747851029038429
-        ],
-        [
-          "vib_td_peak_to_peak",
-          0.03551461547613144
-        ],
-        [
-          "vib_td_margin_factor",
-          0.03444172069430351
-        ],
-        [
-          "vib_fd_tpf_harmonic_energy_total",
-          0.030612830072641373
-        ],
-        [
-          "vib_td_envelope_mean",
-          0.02836747281253338
-        ],
-        [
           "vib_td_crest_factor",
-          0.027379397302865982
+          0.10271699726581573
+        ],
+        [
+          "rpm",
+          0.07479961961507797
+        ],
+        [
+          "feed_per_tooth_mm",
+          0.06787816435098648
+        ],
+        [
+          "blade_speed_sfpm",
+          0.06559599936008453
+        ],
+        [
+          "depth_mm",
+          0.062354281544685364
+        ],
+        [
+          "kerf_width_mm",
+          0.06075829267501831
+        ],
+        [
+          "vib_td_rms",
+          0.05800194293260574
+        ],
+        [
+          "vib_fd_spectral_flatness",
+          0.05364132672548294
+        ],
+        [
+          "vib_fd_spectral_rolloff_hz",
+          0.05317622423171997
+        ],
+        [
+          "vib_td_skewness",
+          0.05158756300806999
         ]
       ]
     }
@@ -341,23 +341,23 @@
   "ablation": {
     "wear_level": {
       "time_only": {
-        "mae": 0.2439132199762412,
-        "rmse": 0.27933001827772114,
-        "r2": 0.0058583671802144854,
+        "mae": 0.7560786401919874,
+        "rmse": 0.7665348894193187,
+        "r2": -793.5981394648273,
         "n_features": 13,
-        "delta_mae_vs_all": 0.09364736112179539
+        "delta_mae_vs_all": 0.09786406159400929
       },
       "freq_only": {
-        "mae": 0.23335657875519475,
-        "rmse": 0.2718802562373103,
-        "r2": 0.05817897095060964,
+        "mae": 0.6934363043002638,
+        "rmse": 0.7035484582361697,
+        "r2": -668.3784420250557,
         "n_features": 15,
-        "delta_mae_vs_all": 0.08309071990074893
+        "delta_mae_vs_all": 0.035221725702285656
       },
       "all": {
-        "mae": 0.15026585885444582,
-        "rmse": 0.18624921381476872,
-        "r2": 0.5580206911209893,
+        "mae": 0.6582145785979782,
+        "rmse": 0.6595094150039281,
+        "r2": -587.2009067823517,
         "n_features": 42,
         "delta_mae_vs_all": 0.0
       }
