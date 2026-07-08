@@ -76,7 +76,7 @@ def init_session_state() -> None:
     ss.running = False
     ss.step = 0
     ss.max_steps = 24
-    ss.delay_s = 0.10
+    ss.delay_s = 0.20  # Raised from 0.10 for smoother perceived performance and lower browser/CPU load while still feeling live for industrial monitoring
     ss.current_result = None
     ss.history = []                 # list[dict] lightweight summaries (capped)
     ss.last_waveform = None         # (t, accel) tuple for the latest chunk

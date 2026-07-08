@@ -44,14 +44,19 @@ pytest>=7.4
 # XGBoost baseline via joblib/xgboost (ml extra). A typical serving install is:
 #     pip install -e ".[ml,dl,app]"
 #
-# Operator dashboard (Day 5) is the "dashboard" extra:
-#     pip install -e ".[dashboard]"
+# Operator dashboard (Day 5) is the "dashboard-nicegui" extra (high-performance
+# NiceGUI + Plotly UI, superseding the legacy Streamlit dashboard):
+#     pip install -e ".[dashboard-nicegui]"
 # which pulls in:
-#   streamlit>=1.36, plotly>=5.22, httpx>=0.27       (see pyproject.toml [dashboard])
-# The dashboard (dashboard.py + the dashviz/ package) runs standalone against an
-# in-process StreamingPerceptor, or over HTTP against the FastAPI service. A full
-# demo install (baseline + DL variants + API + dashboard) is:
-#     pip install -e ".[ml,dl,app,dashboard]"
+#   nicegui>=2.0, plotly>=5.22, httpx>=0.27   (see pyproject.toml [dashboard-nicegui])
+# The dashboard (app/nicegui_dashboard.py + the dashviz/ package) runs standalone
+# against an in-process StreamingPerceptor, or over HTTP against the FastAPI
+# service. A full demo install (baseline + DL variants + API + dashboard) is:
+#     pip install -e ".[ml,dl,app,dashboard-nicegui]"
 # then launch with:
-#     streamlit run dashboard.py
+#     python -m app.nicegui_dashboard        # or: python app/nicegui_dashboard.py
+#
+# LEGACY: the original Streamlit dashboard is the "dashboard" extra
+# (streamlit>=1.36, plotly>=5.22, httpx>=0.27). It has been superseded for
+# performance reasons and moved to _legacy/; see _legacy/README.md to run it.
 # ---------------------------------------------------------------------------

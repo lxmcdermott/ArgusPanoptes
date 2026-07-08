@@ -51,12 +51,14 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-from dashviz import infra, metrics, plots  # noqa: E402
+import infra  # noqa: E402  # legacy: now lives beside this file in _legacy/
+from dashviz import metrics, plots  # noqa: E402
 from dashviz import optimization as opt  # noqa: E402
 from dashviz.scenarios import SCENARIOS  # noqa: E402
 from dashviz.theme import (  # noqa: E402
     COLORS,
     PLOTLY_CONFIG,
+    PLOTLY_CONFIG_LIVE,
     alert_banner_html,
     build_css,
     kpi_card_html,
@@ -110,6 +112,11 @@ _TREND_LABELS = {
 def _plotly(fig: Any, *, key: str) -> None:
     """Render a Plotly figure with the shared responsive dark config."""
     st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG, key=key)
+
+
+def _plotly_live(fig: Any, *, key: str) -> None:
+    """Render a live-view figure (no mode bar) for the smoothest refresh."""
+    st.plotly_chart(fig, width="stretch", config=PLOTLY_CONFIG_LIVE, key=key)
 
 
 def _md(html: str) -> None:
@@ -320,11 +327,12 @@ def render_live_tab() -> None:
             "- Explore the other tabs for batch experiments, historical logs, the "
             "downstream production-impact model, and system/model details."
         )
-    # Dynamic ``run_every``: while a run is active the fragment auto-reruns on a
-    # timer (fragment-scoped, so only this subtree repaints - no full-page
-    # flicker). When idle, ``run_every=None`` disables the timer entirely, so
-    # there is zero background cost. This is Streamlit's recommended live-view
-    # pattern and avoids the full-page ``st.rerun`` that caused the flicker.
+    # Control bar is now OUTSIDE the fragment. Button clicks trigger a clean
+    # full rerun that re-evaluates run_every without fighting the auto-refresh timer.
+    _render_control_bar()
+
+    # Dynamic run_every fragment: only the live content subtree repaints on timer.
+    # When idle, run_every=None disables the timer completely (zero background cost).
     run_every = float(st.session_state.delay_s) if st.session_state.running else None
     st.fragment(_live_monitor_body, run_every=run_every)()
 
@@ -333,18 +341,16 @@ def _live_monitor_body() -> None:
     """Self-contained live view; advances one chunk per fragment tick."""
     ss = st.session_state
 
-    _render_control_bar()
-
     if ss.running:
         try:
             _advance_one_step()
         except RuntimeError as exc:
             ss.running = False
             ss.live_error = str(exc)
-        # When the run finishes (completed or errored), the timer must be
-        # disarmed: a single full rerun recomputes ``run_every`` to ``None``.
-        if not ss.running:
-            st.rerun()
+        # NOTE: We deliberately do NOT call st.rerun() here when the run ends.
+        # The outer render_live_tab() will naturally disarm the timer on next
+        # evaluation because running is now False. This eliminates the full-page
+        # flash that previously occurred at scenario/manual run completion.
 
     if ss.get("live_error"):
         st.error(ss.live_error, icon="\U0001f6d1")
@@ -482,7 +488,7 @@ def _render_status_bar() -> None:
     )
 
 
-def _render_kpi_row(result: dict[str, Any] | None) -> None:
+def _render_kpi_row(result: dict[str, Any] | None, *, key_prefix: str = "live") -> None:
     p = (result or {}).get("predictions", {})
     wear = float(p.get("wear_level", 0.0))
     quality = float(p.get("quality_score", 0.0))
@@ -492,22 +498,23 @@ def _render_kpi_row(result: dict[str, Any] | None) -> None:
     anomaly = bool(p.get("anomaly_flag", False))
     temp = st.session_state.history[-1]["mean_temp_c"] if st.session_state.history else float("nan")
 
-    g1, g2, g3, k1 = st.columns([1, 1, 1, 1.25])
-    with g1:
-        _plotly(plots.build_gauge_figure(
-            wear, "Blade wear", thresholds=(0.45, st.session_state.thresholds["wear_alert"]),
-        ), key="g_wear")
-    with g2:
-        _plotly(plots.build_gauge_figure(
-            quality, "Quality score", thresholds=(0.5, 0.8),
-            colors=(COLORS.critical, COLORS.warning, COLORS.accent),
-        ), key="g_quality")
-    with g3:
-        _plotly(plots.build_gauge_figure(
-            conf, "Confidence", thresholds=(0.4, 0.7),
-            colors=(COLORS.critical, COLORS.warning, COLORS.accent),
-        ), key="g_conf")
-    with k1:
+    # Three gauges in a SINGLE Plotly figure with a stable uirevision: one
+    # component that animates needles in place instead of three that each tear
+    # down and rebuild every fragment tick (the main source of live flicker).
+    col_g, col_k = st.columns([3, 1.3])
+    with col_g:
+        _plotly_live(plots.build_gauge_row_figure(
+            [
+                {"value": wear, "title": "Blade wear",
+                 "thresholds": (0.45, st.session_state.thresholds["wear_alert"])},
+                {"value": quality, "title": "Quality score", "thresholds": (0.5, 0.8),
+                 "colors": (COLORS.critical, COLORS.warning, COLORS.accent)},
+                {"value": conf, "title": "Confidence", "thresholds": (0.4, 0.7),
+                 "colors": (COLORS.critical, COLORS.warning, COLORS.accent)},
+            ],
+            uirevision=f"argus_gauges_{key_prefix}",
+        ), key=f"{key_prefix}_g_row")
+    with col_k:
         color = COLORS.health_color(state)
         anomaly_sub = "\u26a0 anomaly" if anomaly else "nominal"
         _md(kpi_card_html("Health state", state.capitalize(), accent=color, sub=anomaly_sub))
@@ -534,38 +541,72 @@ def _render_live_plots() -> None:
     with r1c1:
         if ss.last_waveform is not None:
             t, accel = ss.last_waveform
-            _plotly(plots.build_waveform_figure(accel, t=t), key="p_wave")
+            _plotly_live(
+                plots.build_waveform_figure(accel, t=t, uirevision="argus_live_wave"),
+                key="p_wave",
+            )
         else:
-            _plotly(plots.build_waveform_figure(np.array([])), key="p_wave")
+            _plotly_live(
+                plots.build_waveform_figure(np.array([]), uirevision="argus_live_wave"),
+                key="p_wave",
+            )
     with r1c2:
         if ss.last_waveform is not None:
             _, accel = ss.last_waveform
             fs = float((ss.last_meta or {}).get("fs_hz", 40960.0))
             tpf = float((ss.last_meta or {}).get("tooth_pass_freq_hz", 0.0)) or None
-            _plotly(plots.build_fft_figure(accel, fs, tpf_hz=tpf), key="p_fft")
+            _plotly_live(
+                plots.build_fft_figure(accel, fs, tpf_hz=tpf, uirevision="argus_live_fft"),
+                key="p_fft",
+            )
         else:
-            _plotly(plots.build_fft_figure(np.array([]), 40960.0), key="p_fft")
+            _plotly_live(
+                plots.build_fft_figure(np.array([]), 40960.0, uirevision="argus_live_fft"),
+                key="p_fft",
+            )
 
     r2c1, r2c2 = st.columns(2)
     with r2c1:
         if ss.last_stft and np.asarray(ss.last_stft["power"]).size:
             s = ss.last_stft
-            _plotly(plots.build_stft_heatmap(s["power"], s["freqs"], s["times"]), key="p_stft")
+            _plotly_live(
+                plots.build_stft_heatmap(
+                    s["power"], s["freqs"], s["times"], uirevision="argus_live_stft"
+                ),
+                key="p_stft",
+            )
         else:
-            _plotly(plots.build_stft_heatmap(np.zeros((0, 0)), np.array([]), np.array([])),
-                    key="p_stft")
+            _plotly_live(
+                plots.build_stft_heatmap(
+                    np.zeros((0, 0)), np.array([]), np.array([]), uirevision="argus_live_stft"
+                ),
+                key="p_stft",
+            )
     with r2c2:
         df = pd.DataFrame(ss.history)
         if not df.empty and "mean_temp_c" in df:
-            _plotly(plots.build_trend_figure(
-                df.reset_index(), ["wear_level", "quality_score"], x_col="index",
-                title="Recent trend (wear / quality)", labels=_TREND_LABELS,
-                color_map={"wear_level": COLORS.warning, "quality_score": COLORS.accent},
-                height=300,
-            ), key="p_trend")
+            # Cap history for the trend plot to keep render cost constant
+            df_trend = df.tail(30)
+            _plotly_live(
+                plots.build_trend_figure(
+                    df_trend.reset_index(),
+                    ["wear_level", "quality_score"],
+                    x_col="index",
+                    title="Recent trend (wear / quality)",
+                    labels=_TREND_LABELS,
+                    color_map={"wear_level": COLORS.warning, "quality_score": COLORS.accent},
+                    height=300,
+                    uirevision="argus_live_trend",
+                ),
+                key="p_trend",
+            )
         else:
-            _plotly(plots.build_trend_figure(pd.DataFrame(), [], title="Recent trend"),
-                    key="p_trend")
+            _plotly_live(
+                plots.build_trend_figure(
+                    pd.DataFrame(), [], title="Recent trend", uirevision="argus_live_trend"
+                ),
+                key="p_trend",
+            )
 
 
 def _render_recommendation(result: dict[str, Any] | None) -> None:
@@ -662,7 +703,7 @@ def _lab_single(params: dict, wear: float, seed: int, noise: float) -> None:
         except RuntimeError as exc:
             st.error(str(exc), icon="\U0001f6d1")
             return
-    _render_kpi_row(result)
+    _render_kpi_row(result, key_prefix="lab")
     c1, c2 = st.columns(2)
     with c1:
         _plotly(plots.build_waveform_figure(accel, t=chunk["t"],

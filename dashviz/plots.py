@@ -73,6 +73,7 @@ def build_waveform_figure(
     color: str | None = None,
     height: int = 260,
     max_points: int = 2000,
+    uirevision: str | None = "argus_live_signals",
 ) -> go.Figure:
     """Line plot of a (downsampled) vibration chunk in g vs time."""
     y = np.asarray(vibration, dtype=np.float64).ravel()
@@ -102,6 +103,10 @@ def build_waveform_figure(
     fig.update_layout(**get_dark_layout(height=height, title=title))
     fig.update_xaxes(title_text="Time (s)")
     fig.update_yaxes(title_text="Acceleration (g)")
+    # Stable uirevision lets Plotly update traces in place across fragment ticks
+    # (preserves zoom/pan and avoids a full redraw / flicker).
+    if uirevision:
+        fig.update_layout(uirevision=uirevision)
     return fig
 
 
@@ -117,6 +122,7 @@ def build_fft_figure(
     freq_max: float | None = 8000.0,
     height: int = 260,
     max_points: int = 2000,
+    uirevision: str | None = "argus_live_signals",
 ) -> go.Figure:
     """Single-sided amplitude spectrum with an optional tooth-pass marker.
 
@@ -178,6 +184,9 @@ def build_fft_figure(
     fig.update_layout(**get_dark_layout(height=height, title=title))
     fig.update_xaxes(title_text="Frequency (Hz)")
     fig.update_yaxes(title_text="Amplitude (g)")
+    # Stable uirevision preserves zoom/pan and enables in-place updates.
+    if uirevision:
+        fig.update_layout(uirevision=uirevision)
     return fig
 
 
@@ -195,6 +204,7 @@ def build_stft_heatmap(
     height: int = 300,
     max_freq_bins: int = 260,
     max_time_bins: int = 240,
+    uirevision: str | None = "argus_live_signals",
 ) -> go.Figure:
     """Time-frequency heatmap of STFT (log-)power (``power`` is ``(n_freq, n_time)``)."""
     p = np.asarray(power, dtype=np.float32)
@@ -235,13 +245,16 @@ def build_stft_heatmap(
     fig.update_layout(**get_dark_layout(height=height, title=title))
     fig.update_xaxes(title_text="Time (s)")
     fig.update_yaxes(title_text="Frequency (Hz)")
+    # Stable uirevision preserves zoom/pan and enables in-place updates.
+    if uirevision:
+        fig.update_layout(uirevision=uirevision)
     return fig
 
 
 # --------------------------------------------------------------------------- #
 # Gauge
 # --------------------------------------------------------------------------- #
-def build_gauge_figure(
+def _gauge_indicator(
     value: float,
     title: str,
     *,
@@ -252,20 +265,13 @@ def build_gauge_figure(
     number_suffix: str = "",
     number_format: str = ".2f",
     reference: float | None = None,
-    height: int = 200,
-) -> go.Figure:
-    """A ``go.Indicator`` gauge with healthy/warning/critical colored steps.
+    domain: dict[str, Any] | None = None,
+) -> go.Indicator:
+    """Build a single styled ``go.Indicator`` gauge trace (no layout).
 
-    Parameters
-    ----------
-    thresholds:
-        Two ascending values ``(t1, t2)`` splitting the range into
-        healthy ``[min, t1)`` / warning ``[t1, t2)`` / critical ``[t2, max]``.
-        Defaults to 60% / 85% of the range.
-    colors:
-        Three colors for the three steps (defaults to teal / amber / red).
-    reference:
-        Optional delta reference (renders a small delta under the number).
+    Split out from :func:`build_gauge_figure` so several gauges can share one
+    figure (see :func:`build_gauge_row_figure`) - fewer Streamlit/Plotly
+    components means far less per-tick DOM churn on the live monitor.
     """
     v = float(np.clip(value, min_val, max_val)) if np.isfinite(value) else min_val
     if thresholds is None:
@@ -281,12 +287,13 @@ def build_gauge_figure(
         bar_color = step_colors[1]
 
     mode = "gauge+number+delta" if reference is not None else "gauge+number"
-    indicator: dict[str, Any] = {
+    ind: dict[str, Any] = {
         "mode": mode,
         "value": v,
+        "title": {"text": title, "font": {"size": 13, "color": COLORS.text}},
         "number": {
             "suffix": number_suffix,
-            "font": {"color": COLORS.text, "size": 26},
+            "font": {"color": COLORS.text, "size": 24},
             "valueformat": number_format,
         },
         "gauge": {
@@ -312,26 +319,100 @@ def build_gauge_figure(
         },
     }
     if reference is not None:
-        indicator["delta"] = {
+        ind["delta"] = {
             "reference": reference,
             "increasing": {"color": COLORS.critical},
             "decreasing": {"color": COLORS.accent},
             "font": {"size": 12},
         }
+    if domain is not None:
+        ind["domain"] = domain
+    return go.Indicator(**ind)
 
-    fig = go.Figure(go.Indicator(**indicator))
-    fig.update_layout(
-        **get_dark_layout(height=height, margin={"l": 24, "r": 24, "t": 40, "b": 8})
+
+def build_gauge_figure(
+    value: float,
+    title: str,
+    *,
+    min_val: float = 0.0,
+    max_val: float = 1.0,
+    thresholds: Sequence[float] | None = None,
+    colors: Sequence[str] | None = None,
+    number_suffix: str = "",
+    number_format: str = ".2f",
+    reference: float | None = None,
+    height: int = 200,
+    uirevision: str | None = None,
+) -> go.Figure:
+    """A ``go.Indicator`` gauge with healthy/warning/critical colored steps.
+
+    Parameters
+    ----------
+    thresholds:
+        Two ascending values ``(t1, t2)`` splitting the range into
+        healthy ``[min, t1)`` / warning ``[t1, t2)`` / critical ``[t2, max]``.
+        Defaults to 60% / 85% of the range.
+    colors:
+        Three colors for the three steps (defaults to teal / amber / red).
+    reference:
+        Optional delta reference (renders a small delta under the number).
+    uirevision:
+        When set (stable across reruns), Plotly animates the needle/number in
+        place on data updates instead of tearing the SVG down and rebuilding
+        it - this is what makes live gauges update smoothly rather than flicker.
+    """
+    fig = go.Figure(
+        _gauge_indicator(
+            value, title, min_val=min_val, max_val=max_val, thresholds=thresholds,
+            colors=colors, number_suffix=number_suffix, number_format=number_format,
+            reference=reference,
+        )
     )
     fig.update_layout(
-        title={
-            "text": title,
-            "font": {"size": 13, "color": COLORS.text},
-            "x": 0.5,
-            "xanchor": "center",
-            "y": 0.95,
-        }
+        **get_dark_layout(height=height, margin={"l": 24, "r": 24, "t": 44, "b": 8})
     )
+    if uirevision:
+        fig.update_layout(uirevision=uirevision)
+    return fig
+
+
+def build_gauge_row_figure(
+    gauges: Sequence[Mapping[str, Any]],
+    *,
+    height: int = 210,
+    uirevision: str | None = "argus_gauges",
+) -> go.Figure:
+    """Render several gauges as ONE figure (a 1xN indicator grid).
+
+    Collapsing the live KPI gauges into a single Plotly component (instead of
+    one ``st.plotly_chart`` per gauge) removes most of the per-tick component
+    churn on the Live Monitor, and the shared ``uirevision`` lets every needle
+    animate in place - the single biggest smoothness win for the live view.
+
+    Each item in ``gauges`` is a mapping accepted by :func:`_gauge_indicator`
+    (``value``, ``title``, and optional ``thresholds`` / ``colors`` / ...).
+    """
+    n = max(1, len(gauges))
+    fig = go.Figure()
+    for i, g in enumerate(gauges):
+        fig.add_trace(
+            _gauge_indicator(
+                float(g.get("value", 0.0)),
+                str(g.get("title", "")),
+                min_val=float(g.get("min_val", 0.0)),
+                max_val=float(g.get("max_val", 1.0)),
+                thresholds=g.get("thresholds"),
+                colors=g.get("colors"),
+                number_suffix=str(g.get("number_suffix", "")),
+                number_format=str(g.get("number_format", ".2f")),
+                reference=g.get("reference"),
+                domain={"row": 0, "column": i},
+            )
+        )
+    fig.update_layout(**get_dark_layout(height=height, margin={"l": 16, "r": 16, "t": 46, "b": 8}))
+    fig.update_layout(grid={"rows": 1, "columns": n, "pattern": "independent"})
+    if uirevision:
+        fig.update_layout(uirevision=uirevision)
     return fig
 
 
@@ -382,6 +463,7 @@ def build_trend_figure(
     range_slider: bool = False,
     y_title: str = "",
     labels: Mapping[str, str] | None = None,
+    uirevision: str | None = "argus_live_signals",
 ) -> go.Figure:
     """Multi-series line chart over a (time or index) axis for historical trends."""
     import pandas as pd  # local import; only needed here
@@ -410,6 +492,9 @@ def build_trend_figure(
     fig.update_yaxes(title_text=y_title)
     if range_slider:
         fig.update_xaxes(rangeslider={"visible": True, "thickness": 0.06})
+    # Stable uirevision preserves zoom/pan and enables in-place updates.
+    if uirevision:
+        fig.update_layout(uirevision=uirevision)
     return fig
 
 

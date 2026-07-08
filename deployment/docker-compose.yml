@@ -1,26 +1,39 @@
 # ---------------------------------------------------------------------------
-# Argus Panoptes - placeholder compose file (Day 6 deliverable).
-# SCAFFOLD ONLY: services for the FastAPI API and Streamlit dashboard are
-# stubbed and will be wired up once app/ is implemented.
+# Argus Panoptes - local compose stack.
+#   api        : FastAPI inference service (StreamingPerceptor + Parquet logs)
+#   dashboard  : high-performance NiceGUI + Plotly operator UI (talks to `api`)
+#   datagen    : one-shot synthetic dataset generation
+# Bring up the demo stack with:  docker compose -f deployment/docker-compose.yml up api dashboard
 # ---------------------------------------------------------------------------
 services:
-  # api:
-  #   build:
-  #     context: ..
-  #     dockerfile: deployment/Dockerfile
-  #   command: uvicorn app.main:app --host 0.0.0.0 --port 8000
-  #   ports:
-  #     - "8000:8000"
+  api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../logs:/app/logs
 
-  # dashboard:
-  #   build:
-  #     context: ..
-  #     dockerfile: deployment/Dockerfile
-  #   command: streamlit run app/dashboard.py --server.address 0.0.0.0
-  #   ports:
-  #     - "8501:8501"
-  #   depends_on:
-  #     - api
+  dashboard:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    # NiceGUI serves on 8080. ARGUS_DASHBOARD_* let it bind 0.0.0.0 and default
+    # to API mode against the `api` service (see app/nicegui_dashboard.py).
+    command: python -m app.nicegui_dashboard
+    environment:
+      ARGUS_DASHBOARD_HOST: "0.0.0.0"
+      ARGUS_DASHBOARD_PORT: "8080"
+      ARGUS_DASHBOARD_USE_API: "1"
+      ARGUS_API_BASE_URL: "http://api:8000"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - api
+    volumes:
+      - ../logs:/app/logs
 
   datagen:
     build:

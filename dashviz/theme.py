@@ -172,14 +172,27 @@ def _axis_style() -> dict[str, Any]:
     }
 
 
-#: Plotly ``config`` passed to every ``st.plotly_chart`` for a consistent,
-#: responsive, low-chrome interactive experience.
+#: Plotly ``config`` passed to analysis charts (Lab / History / System) for a
+#: consistent, responsive, low-chrome interactive experience.
 PLOTLY_CONFIG: dict[str, Any] = {
     "displayModeBar": True,
     "responsive": True,
     "displaylogo": False,
     "modeBarButtonsToRemove": ["select2d", "lasso2d", "autoScale2d"],
     "scrollZoom": False,
+}
+
+#: Config for the self-refreshing **Live Monitor** charts. The mode bar is
+#: hidden (drag-to-zoom / double-click-reset still work) so there is no hover
+#: toolbar to repaint every tick, and ``doubleClick`` resets against the stable
+#: ``uirevision``. Fewer interactive widgets => noticeably smoother refresh.
+PLOTLY_CONFIG_LIVE: dict[str, Any] = {
+    "displayModeBar": False,
+    "responsive": True,
+    "displaylogo": False,
+    "scrollZoom": False,
+    "doubleClick": "reset",
+    "showTips": False,
 }
 
 
@@ -413,12 +426,10 @@ def build_css() -> str:
         font-size: 0.8rem; font-weight: 700; letter-spacing: 0.02em;
     }}
     .argus-dot {{ width: 9px; height: 9px; border-radius: 50%; display: inline-block; }}
-    @keyframes argus-pulse {{
-        0% {{ box-shadow: 0 0 0 0 rgba(20,184,166,0.6); }}
-        70% {{ box-shadow: 0 0 0 8px rgba(20,184,166,0); }}
-        100% {{ box-shadow: 0 0 0 0 rgba(20,184,166,0); }}
-    }}
-    .argus-dot.live {{ animation: argus-pulse 1.4s infinite; }}
+    /* Static glow (not a keyframe animation): the live status bar re-renders
+       every fragment tick, and a restarting CSS animation reads as flicker.
+       A steady halo communicates "live" without any per-tick animation reset. */
+    .argus-dot.live {{ box-shadow: 0 0 0 3px rgba(45,212,191,0.28), 0 0 8px 2px rgba(45,212,191,0.45); }}
 
     /* ---- Alert banner ---- */
     .argus-alert {{

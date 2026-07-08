@@ -22,7 +22,7 @@ watching the factory floor.
 | **DSP & feature extraction**            | `dsp/`          | ✅ **v1 implemented (Day 2)** + DL input methods (Day 3) |
 | **ML pipeline & experiments**           | `models/`       | ✅ XGBoost baseline + ablations (Day 2) · ✅ DL + ONNX (Day 3) · ✅ hardened (noise aug, norm ablation) |
 | **Streaming inference + FastAPI**       | `app/`          | ✅ **Day 4 complete** (StreamingPerceptor, Parquet logging, `/infer` `/batch`) |
-| **Streamlit dashboard**                 | `dashboard.py`  | ✅ **Day 5 complete** (live monitor, lab, history, optimization sandbox) |
+| **Operator dashboard (NiceGUI)**        | `app/nicegui_dashboard.py` | ✅ **Day 5 complete** (smooth live monitor, lab, history, optimization sandbox; Streamlit v1 archived in `_legacy/`) |
 | Docker / edge                           | `deployment/`   | 🚧 scaffold (Day 6)                 |
 
 This repository currently delivers a **production-quality v1 of the `sensors/`,
@@ -65,7 +65,7 @@ flowchart LR
     end
 
     subgraph ops [User / ops layer]
-        DASH["Streamlit dashboard<br/>live viz, KPIs, alerts"]
+        DASH["NiceGUI dashboard<br/>live viz, KPIs, alerts"]
         COST["Cost and nesting optimizer<br/>cost / cycle-time / nesting"]
     end
 
@@ -131,34 +131,44 @@ curl -X POST "http://127.0.0.1:8000/infer" \
 
 ### Dashboard (Day 5)
 
-Install the dashboard extra alongside the model artifacts you want to load:
+The operator dashboard is a high-performance **NiceGUI + Plotly** app
+(`app/nicegui_dashboard.py`). Its WebSocket-backed reactive updates, a single
+`ui.timer`, and a decoupled background `SimulationOrchestrator` thread deliver
+smooth, flicker-free multi-stream live visualization at a stable ~5–10 Hz.
+Install the `dashboard-nicegui` extra alongside the model artifacts you want to
+load, then launch it:
 
 ```bash
-pip install -e ".[ml,dl,app,dashboard]"
-streamlit run dashboard.py
+pip install -e ".[ml,dl,app,dashboard-nicegui]"
+python -m app.nicegui_dashboard        # or: python app/nicegui_dashboard.py
 ```
 
-The UI opens at `http://localhost:8501` by default. **Standalone (direct)** mode runs an
+The UI opens at `http://127.0.0.1:8080`. **Standalone (direct)** mode runs an
 in-process `StreamingPerceptor` for the lowest-latency demos and screen recordings.
 **Connected to API** mode calls the FastAPI service (`uvicorn app.main:app --reload`) over
-HTTP for a true client/server showcase.
+HTTP for a true client/server showcase (toggle it in the left control drawer, or set
+`ARGUS_DASHBOARD_USE_API=1` / `ARGUS_API_BASE_URL=...`).
 
 | Tab | Purpose |
 | --- | --- |
 | **Live Monitor** | Real-time waveform / FFT / STFT, KPI gauges, alerts, recommendations; self-refreshing live simulation via demo scenarios |
-| **Simulation Lab** | Single / multi-model / batch runs, robustness presets, export JSON/CSV |
-| **Historical Explorer** | Filter partitioned Parquet inference logs, trend charts, record drill-down |
+| **Simulation Lab** | Presets + single / multi-model / robustness-batch runs |
+| **Historical Explorer** | Query partitioned Parquet inference logs, trend charts, record drill-down (re-simulate + re-infer from a logged operating point) |
 | **Optimization Sandbox** | Transparent downstream production-impact model + structured planner payload |
-| **System & Models** | Model inventory, ONNX latency benchmarks, quick tester, config inspector |
+| **System & Models** | Model inventory, ONNX latency benchmarks, robustness notes, config inspector |
 
-**Demo usage:** open the sidebar **Demo scenarios** expander and click **Launch scenario**
+**Demo usage:** on the **Live Monitor** pick a **Scenario** and click **Launch scenario**
 for a one-click, repeatable live run (Normal Operation, Progressive Wear, Sudden Anomaly,
-Noisy Sensor Robustness). Enable **Persist live predictions to Parquet** under Utilities
-so Historical Explorer picks up live runs. Generate seed logs with:
+Noisy Sensor Robustness). Enable **Persist live predictions to Parquet** in the drawer's
+Utilities so Historical Explorer picks up live runs. Generate seed logs with:
 
 ```bash
 python scripts/stream_demo.py --model 1dcnn_normnone --duration-s 5 --wear 0.6
 ```
+
+> The original Streamlit dashboard has been **superseded** for performance reasons and
+> archived under `_legacy/` (see `_legacy/README.md`); the legacy `dashboard` extra
+> (`pip install -e ".[dashboard]"`) still runs it.
 
 <!-- Screenshots / GIFs: add `docs/dashboard-live.png`, `docs/dashboard-lab.png` here -->
 
@@ -253,20 +263,21 @@ ArgusPanoptes/
 │   ├── train_dl.py         # DL training CLI (+ same-split XGBoost comparison)
 │   ├── onnx_inference.py   # ONNXPerceptor (torch-free edge inference)
 │   └── streaming_perceptor.py  # ✅ StreamingPerceptor (ring buffer + DSP + model)
-├── app/                # ✅ FastAPI service + Parquet inference logging (Day 4)
+├── app/                # ✅ FastAPI service + Parquet logging (Day 4) + dashboard (Day 5)
 │   ├── main.py             # /infer /batch /health /models
 │   ├── logging.py          # InferenceLogger -> partitioned Parquet
 │   ├── config.py           # ARGUS_* env-var config
+│   ├── nicegui_dashboard.py  # ✅ NiceGUI + Plotly operator dashboard (entry point)
 │   └── README.md
-├── dashviz/            # ✅ Streamlit dashboard helpers (Day 5)
+├── dashviz/            # ✅ UI-agnostic dashboard building blocks (Day 5)
 │   ├── theme.py            # dark industrial theme + styled components
 │   ├── plots.py            # Plotly figure builders (waveform, FFT, STFT, gauges)
-│   ├── infra.py            # session state, caching, unified inference
+│   ├── orchestrator.py     # SimulationOrchestrator: bg thread, snapshots, unified inference
 │   ├── optimization.py     # downstream production-impact model
 │   ├── scenarios.py        # pre-built demo scenarios
 │   └── metrics.py          # experiment metric JSON loaders
-├── dashboard.py        # ✅ Streamlit operator dashboard (Day 5 entry point)
-├── deployment/         # 🚧 Dockerfile + compose (scaffold)
+├── _legacy/            # 🗄️ archived Streamlit dashboard v1 (dashboard.py + infra.py)
+├── deployment/         # ✅ Dockerfile + compose (api + NiceGUI dashboard + datagen)
 ├── experiments/        # notebooks + generated plots + robustness ablation
 │   └── robustness_ablation.py
 ├── scripts/
@@ -288,8 +299,9 @@ Python 3.11+ · NumPy · SciPy (signal, fft, welch) · Pandas · PyArrow (Parque
 Pydantic · PyYAML · Matplotlib · pytest. ML via the `[ml]` extra (scikit-learn,
 XGBoost, joblib); DL + edge export via the `[dl]` extra (PyTorch, ONNX, ONNX
 Runtime); the streaming inference service via the `[app]` extra (FastAPI,
-uvicorn, python-multipart, httpx). The operator dashboard via the `[dashboard]` extra
-(Streamlit, Plotly). The service is **torch-free** at runtime (DL
+uvicorn, python-multipart, httpx). The operator dashboard via the
+`[dashboard-nicegui]` extra (NiceGUI, Plotly, httpx); the legacy Streamlit UI is the
+`[dashboard]` extra. The service is **torch-free** at runtime (DL
 variants run on ONNX Runtime).
 
 ---
@@ -333,6 +345,6 @@ Day 1 ✅ sensors + validation → Day 2 ✅ DSP features + dataset integration 
 XGBoost baseline + ablations → Day 3 ✅ DL + ONNX + benchmarks + robustness
 **hardened** (noise aug, `normalize_for_dl` ablation) → Day 4 ✅ streaming
 `StreamingPerceptor` + FastAPI (`/infer`, `/batch`, `/health`, `/models`) +
-partitioned Parquet inference logging → Day 5 ✅ Streamlit dashboard + cost/nesting
+partitioned Parquet inference logging → Day 5 ✅ NiceGUI operator dashboard + cost/nesting
 integration mock → Day 6 experiments + Docker/edge → Day 7 polish + demo. Future:
 swap simulators for a real DAQ (Pi + MPU6050 + MLX90640) and add vision depth.

@@ -1,8 +1,9 @@
 # `app/` — Inference, Integration & Dashboard
 
-> **Status:** ✅ **Day 4 complete** — streaming perceptor, Parquet inference
-> logging, and a FastAPI service. Streamlit dashboard + mock PLC/OPC-UA remain
-> scaffolded for Day 5.
+> **Status:** ✅ **Day 4 + Day 5 complete** — streaming perceptor, Parquet
+> inference logging, a FastAPI service, and the high-performance **NiceGUI +
+> Plotly** operator dashboard (`app/nicegui_dashboard.py`). Mock PLC/OPC-UA
+> remains scaffolded.
 
 ## What's implemented
 
@@ -105,9 +106,36 @@ recent = d.to_table(filter=ds.field("model") == "1dcnn_normnone").to_pandas()
   accuracy); `noisy`/`noisy01` are z-score + noise-augmented for sensor
   robustness. The perceptor configures a matching DSP front-end automatically.
 
-## Planned (Day 5)
+## Operator dashboard (Day 5)
 
-- ✅ Streamlit dashboard: live waveform / FFT / STFT plots, KPI gauges
-  (wear %, RUL, cycle factor, anomaly score), alerts, historical explorer, and a
-  PyTorch↔ONNX model toggle.
+The dashboard is a high-performance **NiceGUI + Plotly** app in
+`app/nicegui_dashboard.py`. A background `dashviz.orchestrator.SimulationOrchestrator`
+thread runs the simulate → DSP → infer loop and publishes thread-safe `Snapshot`s;
+the UI refreshes via a single `ui.timer` that pushes only changed figures/labels
+in place (aggressive waveform/FFT downsampling + a throttled STFT heatmap) for
+smooth, flicker-free ~5–10 Hz live updates.
+
+```bash
+pip install -e ".[ml,dl,app,dashboard-nicegui]"
+python -m app.nicegui_dashboard        # http://127.0.0.1:8080
+```
+
+Modes: **Standalone** (in-process `StreamingPerceptor`, lowest latency) or
+**Connected to API** (calls this service's `/infer` over HTTP). Env overrides
+(used by `deployment/docker-compose.yml`): `ARGUS_DASHBOARD_HOST`,
+`ARGUS_DASHBOARD_PORT`, `ARGUS_DASHBOARD_USE_API`, `ARGUS_API_BASE_URL`,
+`ARGUS_DASHBOARD_MODEL`, `ARGUS_LOG_DIR`.
+
+Tabs: **Live Monitor** (waveform/FFT/STFT/trend, KPI gauges, alerts,
+recommendations, start/stop/pause/step, scenarios), **Simulation Lab** (presets +
+single/multi-model/robustness-batch runs), **Historical Explorer** (query Parquet
+logs + reconstruct/re-infer a record), **Optimization Sandbox** (downstream
+production-impact model), **System & Models** (inventory, ONNX latency, robustness
+notes). The reusable, framework-neutral helpers live in the `dashviz/` package.
+
+> The original Streamlit dashboard is archived under `_legacy/` (see
+> `_legacy/README.md`); it was superseded for the reasons above.
+
+## Planned
+
 - Mock PLC / OPC-UA tags and ML feature store.

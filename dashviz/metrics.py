@@ -1,9 +1,8 @@
 """Loaders for the experiment metric JSONs surfaced in the dashboard.
 
-Pure helpers (no Streamlit) that read the committed ``experiments/*.json``
+Pure, framework-neutral helpers that read the committed ``experiments/*.json``
 artifacts (ONNX latency benchmark, XGBoost baseline metrics, per-model DL
-metrics, robustness ablation) and reshape them for display. Caching is applied
-by the callers in :mod:`dashviz.infra` via ``st.cache_data``.
+metrics, robustness ablation) and reshape them for display.
 """
 
 from __future__ import annotations

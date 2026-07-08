@@ -56,11 +56,25 @@ app = [
     "python-multipart>=0.0.9",
     "httpx>=0.27",  # FastAPI TestClient (tests) + optional client use
 ]
-# Operator dashboard (Day 5): the Streamlit + Plotly monitoring UI in
-# `dashboard.py` (helpers in the `dashviz` package). Runs standalone against an
-# in-process StreamingPerceptor (lowest latency) or, optionally, against the
-# FastAPI service over HTTP (httpx). Pair with `ml` and/or `dl` so the selected
-# model artifacts can load, e.g. `pip install -e ".[ml,dl,app,dashboard]"`.
+# Operator dashboard (Day 5): the high-performance **NiceGUI + Plotly** monitoring
+# UI in `app/nicegui_dashboard.py` (orchestrator + figure builders in the
+# `dashviz` package). NiceGUI's WebSocket-backed reactive updates + background
+# threading deliver smooth, flicker-free multi-stream live visualization. Runs
+# standalone against an in-process StreamingPerceptor (lowest latency) or over
+# HTTP against the FastAPI service (httpx). Pair with `ml` and/or `dl` so the
+# selected model artifacts can load, e.g.
+# `pip install -e ".[ml,dl,app,dashboard-nicegui]"`.
+dashboard-nicegui = [
+    "nicegui>=2.0",
+    "plotly>=5.22",
+    "httpx>=0.27",  # optional API-mode client
+]
+# LEGACY (superseded for performance reasons): the original Streamlit + Plotly
+# dashboard, now archived under `_legacy/` (`_legacy/dashboard.py` +
+# `_legacy/infra.py`). Kept runnable there but no longer the recommended operator
+# UI - full-subtree repaints and
+# JSON figure serialization made smooth multi-stream live updates hard. Prefer the
+# `dashboard-nicegui` extra above. See `_legacy/README.md`.
 dashboard = [
     "streamlit>=1.36",
     "plotly>=5.22",
