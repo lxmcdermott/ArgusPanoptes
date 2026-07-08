@@ -229,6 +229,9 @@ def _config_from_env() -> orch.SessionConfig:
     cfg.model = os.environ.get("ARGUS_DASHBOARD_MODEL", cfg.model)
     if (log_dir := os.environ.get("ARGUS_LOG_DIR")):
         cfg.log_dir = log_dir
+    # Persist live predictions by default in deployed/containerised setups so the
+    # Historical Explorer populates without the operator toggling the switch.
+    cfg.persist_logs = _env_flag("ARGUS_DASHBOARD_PERSIST", cfg.persist_logs)
     return cfg
 
 
@@ -416,7 +419,8 @@ class Dashboard:
             # ---- Utilities ----
             with ui.expansion("Utilities", icon="tune").classes("w-full"):
                 self._els["persist"] = ui.switch(
-                    "Persist live predictions to Parquet", value=False,
+                    "Persist live predictions to Parquet",
+                    value=self.orc.config.persist_logs,
                     on_change=lambda e: self.orc.set_persist(e.value, self.orc.config.log_dir),
                 )
                 self._els["log_dir"] = ui.input(
