@@ -1,12 +1,12 @@
 # `models/` — ML Pipeline & Experiments
 
-> **Status:** ✅ XGBoost baseline + ablations (Day 2) · ✅ DL (1D-CNN / spectrogram
-> / fusion) + ONNX export & benchmarks (Day 3).
+> **Status:** XGBoost baseline + ablations (Step 2) · DL (1D-CNN / spectrogram
+> / fusion) + ONNX export & benchmarks (Step 3).
 
 Trains and evaluates models on the synthetic Parquet dataset produced by
 `scripts/generate_dataset.py --extract-features`.
 
-## Implemented (Day 2): `models/baseline.py`
+## Implemented (Step 2): `models/baseline.py`
 
 Interpretable **XGBoost** baselines on the DSP feature matrix in
 `manifest.parquet`:
@@ -37,7 +37,7 @@ pip install -e ".[ml]"          # scikit-learn, xgboost, joblib
 python models/baseline.py --data-dir data/test_dsp_v1 --seed 42
 ```
 
-## Implemented (Day 3): deep learning + ONNX
+## Implemented (Step 3): deep learning + ONNX
 
 `models/dl_models.py` — three **multi-task** PyTorch models (shared trunk → a
 regression head for `wear_level` / `cycle_time_factor` / `quality_score` and a
@@ -75,7 +75,7 @@ python models/train_dl.py --model fusion      --data-dir data/dl_v1 --epochs 40
 python scripts/benchmark_onnx.py               # p50/p95 latency, throughput
 ```
 
-**Day-3 finding (2500-sample dataset, same test split).** On this clean,
+**Step 3 finding (2500-sample dataset, same test split).** On this clean,
 physics-informed synthetic data the interpretable XGBoost baseline (wear R²≈0.88)
 still beats the raw-signal DL models; among the DL models the **fusion** model is
 strongest (wear R²≈0.35), confirming the tabular ablation's "sensor fusion wins".

@@ -1,6 +1,6 @@
 # `_legacy/` — archived Streamlit dashboard
 
-This folder holds the **original Streamlit operator dashboard** (Day 5, v1). It
+This folder holds the **original Streamlit operator dashboard** (Step 5, v1). It
 has been **superseded** by the high-performance **NiceGUI + Plotly** dashboard at
 `app/nicegui_dashboard.py` and is kept only for reference / comparison.
 

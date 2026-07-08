@@ -74,14 +74,14 @@ Argus Panoptes is a complete, runnable one-week prototype of a multi-modal indus
 - Utils: Pydantic, YAML, logging.
 - Dev: pytest, Docker, Git.
 
-## One-Week Execution Plan
-**Day 1**: Repo/env setup, vibration/thermal simulators, core DSP + validation.
-**Day 2**: Full dataset gen, XGBoost baseline + first ablations.
-**Day 3**: DL models, spectrograms, ONNX export.
-**Day 4**: Streaming inference, Parquet pipeline, FastAPI service.
-**Day 5**: Streamlit dashboard + cost & nesting integration mock.
-**Day 6**: Full experiments, robustness tests, Docker/edge prep. (Hardware pilot optional.)
-**Day 7**: Polish, README/docs, demo video recording, final verification.
+## Execution Plan
+**Step 1**: Repo/env setup, vibration/thermal simulators, core DSP + validation.
+**Step 2**: Full dataset gen, XGBoost baseline + first ablations.
+**Step 3**: DL models, spectrograms, ONNX export.
+**Step 4**: Streaming inference, Parquet pipeline, FastAPI service.
+**Step 5**: Streamlit dashboard + cost & nesting integration mock.
+**Step 6**: Full experiments, robustness tests, Docker/edge prep. (Hardware pilot optional.)
+**Step 7**: Polish, README/docs, demo video recording, final verification.
 
 ## Deliverables & Usage
 - GitHub repo: Clean structure (/sensors, /dsp, /models, /app, /experiments, /deployment).

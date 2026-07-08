@@ -1,11 +1,11 @@
 # `dsp/` — Digital Signal Processing & Feature Extraction
 
-> **Status:** ✅ v1 implemented (Day 2).
+> **Status:** v1 implemented (Step 2).
 
 This module hosts the modular `SignalProcessor` class that turns raw
 vibration/thermal waveforms produced by [`sensors/`](../sensors/README.md) into
 model-ready **scalar features** (and, optionally, STFT spectrograms for the
-Day-3 deep-learning path).
+Step 3 deep-learning path).
 
 ## Pipeline
 
@@ -33,7 +33,7 @@ Day-3 deep-learning path).
 Config is YAML-driven (`dsp/processor_config.yaml`) and validated by
 `pydantic` models in `dsp/config.py`, mirroring `sensors/sensor_specs.yaml`.
 
-## Deep-learning input methods (Day 3)
+## Deep-learning input methods (Step 3)
 
 Two convenience methods prepare model-ready inputs for the DL path without
 touching the scalar-feature / Parquet schema:
@@ -89,6 +89,6 @@ df = sp.process_batch(list_of_waveforms, fs=40960.0, metadatas=list_of_meta,
 - **`models/baseline.py`** consumes those feature columns for XGBoost baselines
   and time-vs-frequency ablations (feature groups selected by the `td_`/`fd_`
   prefixes).
-- **`models/dl_data.py` (Day 3)** uses `get_normalized_waveform` for the 1D-CNN
+- **`models/dl_data.py` (Step 3)** uses `get_normalized_waveform` for the 1D-CNN
   / fusion branches and `compute_spectrogram` for the spectrogram-CNN, computed
   on-the-fly from the raw `records/` waveforms.

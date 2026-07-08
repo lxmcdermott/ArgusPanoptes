@@ -1,6 +1,6 @@
 # `deployment/` — Docker & Edge
 
-> **Status:** scaffold (implemented in Day 6 of the execution plan).
+> **Status:** scaffold (Step 6 of the execution plan).
 
 Contains the containerization and edge-deployment assets for the full stack.
 

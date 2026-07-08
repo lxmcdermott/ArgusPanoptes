@@ -1,6 +1,6 @@
 # `app/` — Inference, Integration & Dashboard
 
-> **Status:** ✅ **Day 4 + Day 5 complete** — streaming perceptor, Parquet
+> **Status:** Steps 4–5 complete — streaming perceptor, Parquet
 > inference logging, a FastAPI service, and the high-performance **NiceGUI +
 > Plotly** operator dashboard (`app/nicegui_dashboard.py`). Mock PLC/OPC-UA
 > remains scaffolded.
@@ -106,7 +106,7 @@ recent = d.to_table(filter=ds.field("model") == "1dcnn_normnone").to_pandas()
   accuracy); `noisy`/`noisy01` are z-score + noise-augmented for sensor
   robustness. The perceptor configures a matching DSP front-end automatically.
 
-## Operator dashboard (Day 5)
+## Operator dashboard (Step 5)
 
 The dashboard is a high-performance **NiceGUI + Plotly** app in
 `app/nicegui_dashboard.py`. A background `dashviz.orchestrator.SimulationOrchestrator`

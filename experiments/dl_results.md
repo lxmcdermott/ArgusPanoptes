@@ -1,4 +1,4 @@
-# Argus Panoptes — Deep Learning Results (Day 3 hardened)
+# Argus Panoptes — Deep Learning Results (Step 3 hardened)
 
 Dataset: `data/dl_v1` · 2500 samples · seed 42 · same stratified split as XGBoost
 (train 1600 / val 400 / test 500).
@@ -91,4 +91,4 @@ moderately improving high-noise performance.
 Artifacts: `experiments/models/dl_*.{pt,onnx}`, metrics JSONs alongside this file,
 `experiments/robustness_results.json`, `experiments/onnx_benchmark.json`.
 
-_Generated during Day 3 hardening._
+_Generated during Step 3 hardening._
