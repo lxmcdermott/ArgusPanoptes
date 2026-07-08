@@ -26,6 +26,7 @@ COPY . .
 
 EXPOSE 8000 8080
 
-# Default entrypoint is the API service; the dashboard service overrides the
-# command (see docker-compose.yml). Bind 0.0.0.0 so the port maps out.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Default entrypoint is the NiceGUI operator dashboard (Render / single-service
+# deploy). docker-compose overrides this for the `api` service; see
+# deployment/docker-compose.yml.
+CMD ["python", "-m", "app.nicegui_dashboard"]

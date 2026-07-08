@@ -1203,11 +1203,27 @@ def _index() -> None:
     ui.context.client.on_disconnect(dash.orc.shutdown)
 
 
+def _dashboard_host() -> str:
+    if "ARGUS_DASHBOARD_HOST" in os.environ:
+        return os.environ["ARGUS_DASHBOARD_HOST"]
+    # PaaS hosts (e.g. Render) set PORT; bind externally when present.
+    if os.environ.get("PORT"):
+        return "0.0.0.0"
+    return "127.0.0.1"
+
+
+def _dashboard_port() -> int:
+    for key in ("PORT", "ARGUS_DASHBOARD_PORT"):
+        if key in os.environ:
+            return int(os.environ[key])
+    return 8080
+
+
 def main() -> None:
     ui.run(
         title="Argus Panoptes | Industrial Perception",
-        host=os.environ.get("ARGUS_DASHBOARD_HOST", "127.0.0.1"),
-        port=int(os.environ.get("ARGUS_DASHBOARD_PORT", "8080")),
+        host=_dashboard_host(),
+        port=_dashboard_port(),
         dark=True,
         reload=False,
         show=_env_flag("ARGUS_DASHBOARD_SHOW", False),
